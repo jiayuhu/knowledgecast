@@ -1,7 +1,7 @@
 "use client";
 
 import type { FormEvent } from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 type KnowledgeItem = {
   id: string;
@@ -25,6 +25,18 @@ type TrainingPageResult = {
     status: string;
     expiresAt: string;
   };
+};
+
+type RecentTrainingPage = {
+  id: string;
+  title: string;
+  status: string;
+  createdAt: string;
+  shareLink: {
+    token: string;
+    status: string;
+    expiresAt: string;
+  } | null;
 };
 
 const sourceTypeOptions = [
@@ -55,12 +67,55 @@ export function DashboardClient() {
     loading: false,
     message: ""
   });
+  const [historyState, setHistoryState] = useState<{
+    loading: boolean;
+    message: string;
+  }>({
+    loading: false,
+    message: ""
+  });
+  const [recentTrainingPages, setRecentTrainingPages] = useState<RecentTrainingPage[]>([]);
   const [latestResult, setLatestResult] = useState<TrainingPageResult | null>(null);
 
   const selectedCount = selectedItemIds.length;
   const generatedShareUrl = latestResult
     ? `/share/${latestResult.shareLink.token}`
     : "";
+
+  useEffect(() => {
+    void loadRecentTrainingPages();
+    // The current userId is loaded from the UI; auto-refresh once on mount.
+  }, []);
+
+  async function loadRecentTrainingPages() {
+    setHistoryState({ loading: true, message: "" });
+
+    try {
+      const response = await fetch(
+        `/api/training-pages?userId=${encodeURIComponent(userId)}&limit=5`
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to load recent training pages.");
+      }
+
+      const payload = (await response.json()) as {
+        trainingPages: RecentTrainingPage[];
+      };
+
+      setRecentTrainingPages(payload.trainingPages);
+      setHistoryState({
+        loading: false,
+        message: payload.trainingPages.length > 0 ? "History refreshed." : "No history yet."
+      });
+    } catch (error) {
+      setHistoryState({
+        loading: false,
+        message:
+          error instanceof Error ? error.message : "Failed to load recent training pages."
+      });
+    }
+  }
 
   async function handleCaptureSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -128,6 +183,7 @@ export function DashboardClient() {
         loading: false,
         message: "Training page generated."
       });
+      await loadRecentTrainingPages();
     } catch (error) {
       setGenerationState({
         loading: false,
@@ -408,6 +464,73 @@ export function DashboardClient() {
                   blocks here.
                 </div>
               )}
+            </div>
+
+            <div className="rounded-[2rem] border border-black/10 bg-white px-6 py-6 shadow-[0_24px_90px_-75px_rgba(0,0,0,0.35)]">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <h3 className="text-sm font-medium uppercase tracking-[0.22em] text-black/40">
+                    Recent results
+                  </h3>
+                  <p className="mt-2 text-sm text-black/55">
+                    Pull the latest generated pages for the current user.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => void loadRecentTrainingPages()}
+                  className="rounded-full border border-black/10 px-4 py-2 text-sm font-medium text-black transition hover:border-black/20 hover:bg-black/3 disabled:opacity-60"
+                  disabled={historyState.loading}
+                >
+                  {historyState.loading ? "Loading..." : "Refresh"}
+                </button>
+              </div>
+
+              {historyState.message ? (
+                <p className="mt-4 rounded-2xl bg-black/5 px-4 py-3 text-sm text-black/65">
+                  {historyState.message}
+                </p>
+              ) : null}
+
+              <div className="mt-4 space-y-3">
+                {recentTrainingPages.length > 0 ? (
+                  recentTrainingPages.map((item) => (
+                    <div
+                      key={item.id}
+                      className="rounded-2xl border border-black/10 bg-black/3 px-4 py-4"
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <div className="font-medium">{item.title}</div>
+                          <div className="mt-1 text-sm text-black/55">
+                            {item.status} · {new Date(item.createdAt).toLocaleString()}
+                          </div>
+                        </div>
+                        <span className="rounded-full bg-black/5 px-3 py-1 text-xs uppercase tracking-[0.2em] text-black/45">
+                          {item.shareLink ? item.shareLink.status : "no share"}
+                        </span>
+                      </div>
+                      <div className="mt-3 flex flex-wrap gap-3 text-sm">
+                        {item.shareLink ? (
+                          <a
+                            href={`/share/${item.shareLink.token}`}
+                            className="rounded-full bg-black px-4 py-2 font-medium text-white transition hover:bg-black/85"
+                          >
+                            Open share
+                          </a>
+                        ) : null}
+                        <span className="rounded-full bg-black/5 px-4 py-2 font-mono text-black/70">
+                          {item.id.slice(0, 8)}
+                        </span>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="rounded-2xl border border-dashed border-black/10 px-4 py-8 text-sm text-black/50">
+                    No recent training pages yet.
+                  </div>
+                )}
+              </div>
             </div>
           </section>
         </div>

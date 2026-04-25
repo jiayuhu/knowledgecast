@@ -7,6 +7,7 @@ import {
   trainingPages
 } from "@/server/db/schema";
 import { createKnowledgeItem } from "@/server/knowledge/repository";
+import { listRecentTrainingPages } from "@/server/training/repository";
 import { generateTrainingPage } from "@/server/training/service";
 
 describe("generateTrainingPage", () => {
@@ -57,5 +58,36 @@ describe("generateTrainingPage", () => {
     );
     expect(result.shareLink.status).toBe("active");
     expect(result.shareLink.token).toHaveLength(36);
+  });
+
+  it("lists recent training pages with their share links", async () => {
+    await createKnowledgeItem({
+      userId: "user_1",
+      sourceType: "text",
+      title: "Intro",
+      content: "AI helps sort notes."
+    });
+
+    const provider = {
+      generate: vi.fn(async () => ({
+        title: "KnowledgeCast Overview",
+        outline: ["Why", "What", "How"],
+        followUpQuestions: ["Who is the audience?"]
+      }))
+    };
+
+    const generated = await generateTrainingPage(
+      {
+        userId: "user_1",
+        knowledgeItemIds: []
+      },
+      provider
+    );
+
+    const recentPages = await listRecentTrainingPages("user_1");
+
+    expect(recentPages).toHaveLength(1);
+    expect(recentPages[0]?.title).toBe("KnowledgeCast Overview");
+    expect(recentPages[0]?.shareLink?.token).toBe(generated.shareLink.token);
   });
 });
