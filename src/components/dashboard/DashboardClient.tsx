@@ -231,6 +231,35 @@ export function DashboardClient() {
     );
   }
 
+  async function handleCopySelectedKnowledgeItem() {
+    if (!selectedKnowledgeItem) {
+      return;
+    }
+
+    const copyText = [
+      selectedKnowledgeItem.title ? `# ${selectedKnowledgeItem.title}` : null,
+      `Source: ${selectedKnowledgeItem.sourceType}`,
+      `Status: ${selectedKnowledgeItem.status}`,
+      "",
+      selectedKnowledgeItem.content
+    ]
+      .filter((line): line is string => line !== null)
+      .join("\n");
+
+    try {
+      await navigator.clipboard.writeText(copyText);
+      setHistoryState({
+        loading: false,
+        message: "Knowledge content copied."
+      });
+    } catch {
+      setHistoryState({
+        loading: false,
+        message: "Copy failed in this browser."
+      });
+    }
+  }
+
   return (
     <main className="min-h-screen bg-[#f8f7f3] px-6 py-10 text-black">
       <div className="mx-auto max-w-6xl">
@@ -605,6 +634,16 @@ export function DashboardClient() {
                       className="rounded-full border border-black/10 px-3 py-2 text-xs font-medium uppercase tracking-[0.2em] text-black/55 transition hover:border-black/20 hover:bg-black/5"
                     >
                       Close
+                    </button>
+                  </div>
+
+                  <div className="mt-4 flex flex-wrap gap-3">
+                    <button
+                      type="button"
+                      onClick={() => void handleCopySelectedKnowledgeItem()}
+                      className="rounded-full bg-black px-4 py-2 text-xs font-medium uppercase tracking-[0.2em] text-white transition hover:bg-black/85"
+                    >
+                      Copy content
                     </button>
                   </div>
 
