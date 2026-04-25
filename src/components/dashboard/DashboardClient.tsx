@@ -251,6 +251,34 @@ export function DashboardClient() {
           </div>
         </section>
 
+        <section className="mt-6 rounded-[2rem] border border-black/10 bg-white px-6 py-5 shadow-[0_24px_90px_-75px_rgba(0,0,0,0.35)] sm:px-8">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <label className="block flex-1 text-sm font-medium text-black/70">
+              Workspace user ID
+              <input
+                value={userId}
+                onChange={(event) => setUserId(event.target.value)}
+                className="mt-2 w-full rounded-2xl border border-black/10 bg-white px-4 py-3 outline-none transition focus:border-black/40"
+                placeholder="demo-user"
+              />
+            </label>
+
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <button
+                type="button"
+                onClick={() => void loadRecentTrainingPages()}
+                className="rounded-2xl border border-black/10 px-4 py-3 text-sm font-medium text-black transition hover:border-black/20 hover:bg-black/3 disabled:opacity-60"
+                disabled={historyState.loading}
+              >
+                {historyState.loading ? "Refreshing..." : "Refresh workspace"}
+              </button>
+              <div className="rounded-2xl bg-black/5 px-4 py-3 text-sm text-black/55">
+                {userId || "No user selected"}
+              </div>
+            </div>
+          </div>
+        </section>
+
         <div className="mt-8 grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
           <section className="rounded-[2rem] border border-black/10 bg-white px-6 py-6 shadow-[0_24px_90px_-75px_rgba(0,0,0,0.35)]">
             <div className="flex items-center justify-between gap-4">
@@ -268,16 +296,6 @@ export function DashboardClient() {
             </div>
 
             <form className="mt-6 space-y-4" onSubmit={handleCaptureSubmit}>
-              <label className="block text-sm font-medium text-black/70">
-                User ID
-                <input
-                  value={userId}
-                  onChange={(event) => setUserId(event.target.value)}
-                  className="mt-2 w-full rounded-2xl border border-black/10 bg-white px-4 py-3 outline-none transition focus:border-black/40"
-                  placeholder="demo-user"
-                />
-              </label>
-
               <label className="block text-sm font-medium text-black/70">
                 Source type
                 <select
@@ -403,15 +421,6 @@ export function DashboardClient() {
               </div>
 
               <form className="mt-6 space-y-4" onSubmit={handleGenerateSubmit}>
-                <label className="block text-sm font-medium text-black/70">
-                  User ID
-                  <input
-                    value={userId}
-                    onChange={(event) => setUserId(event.target.value)}
-                    className="mt-2 w-full rounded-2xl border border-black/10 bg-white px-4 py-3 outline-none transition focus:border-black/40"
-                  />
-                </label>
-
                 <label className="block text-sm font-medium text-black/70">
                   Selected item IDs
                   <textarea
