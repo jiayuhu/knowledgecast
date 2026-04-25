@@ -84,6 +84,7 @@ export function DashboardClient() {
     loading: false,
     message: ""
   });
+  const [detailMenuOpen, setDetailMenuOpen] = useState(false);
   const [recentKnowledgeItems, setRecentKnowledgeItems] = useState<RecentKnowledgeItem[]>([]);
   const [recentTrainingPages, setRecentTrainingPages] = useState<RecentTrainingPage[]>([]);
   const [selectedKnowledgeItemId, setSelectedKnowledgeItemId] = useState<string | null>(null);
@@ -296,6 +297,10 @@ export function DashboardClient() {
         message: "Failed to archive knowledge item."
       });
     }
+  }
+
+  function closeDetailMenu() {
+    setDetailMenuOpen(false);
   }
 
   return (
@@ -721,25 +726,44 @@ export function DashboardClient() {
                       Close
                     </button>
                   </div>
-
                   <div className="mt-4 flex flex-wrap gap-3">
-                    <button
-                      type="button"
-                      onClick={() => void handleCopySelectedKnowledgeItem()}
-                      className="rounded-full bg-black px-4 py-2 text-xs font-medium uppercase tracking-[0.2em] text-white transition hover:bg-black/85"
-                    >
-                      Copy content
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => void handleArchiveSelectedKnowledgeItem()}
-                      disabled={selectedKnowledgeItem.status === "archived"}
-                      className="rounded-full border border-black/10 px-4 py-2 text-xs font-medium uppercase tracking-[0.2em] text-black transition hover:border-black/20 hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      {selectedKnowledgeItem.status === "archived"
-                        ? "Archived"
-                        : "Archive item"}
-                    </button>
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => setDetailMenuOpen((current) => !current)}
+                        className="rounded-full bg-black px-4 py-2 text-xs font-medium uppercase tracking-[0.2em] text-white transition hover:bg-black/85"
+                      >
+                        More
+                      </button>
+
+                      {detailMenuOpen ? (
+                        <div className="absolute left-0 top-12 z-10 w-44 rounded-2xl border border-black/10 bg-white p-2 shadow-[0_20px_60px_-35px_rgba(0,0,0,0.35)]">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              void handleCopySelectedKnowledgeItem();
+                              closeDetailMenu();
+                            }}
+                            className="block w-full rounded-xl px-3 py-2 text-left text-sm text-black transition hover:bg-black/5"
+                          >
+                            Copy content
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              void handleArchiveSelectedKnowledgeItem();
+                              closeDetailMenu();
+                            }}
+                            disabled={selectedKnowledgeItem.status === "archived"}
+                            className="block w-full rounded-xl px-3 py-2 text-left text-sm text-black transition hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            {selectedKnowledgeItem.status === "archived"
+                              ? "Archived"
+                              : "Archive item"}
+                          </button>
+                        </div>
+                      ) : null}
+                    </div>
                   </div>
 
                   <div className="mt-4 grid gap-3 text-sm text-black/60 sm:grid-cols-2">
