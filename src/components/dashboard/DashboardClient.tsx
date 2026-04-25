@@ -95,6 +95,13 @@ export function DashboardClient() {
     : "";
   const selectedKnowledgeItem =
     recentKnowledgeItems.find((item) => item.id === selectedKnowledgeItemId) ?? null;
+  const activeKnowledgeCount = recentKnowledgeItems.filter(
+    (item) => item.status !== "archived"
+  ).length;
+  const archivedKnowledgeCount = recentKnowledgeItems.filter(
+    (item) => item.status === "archived"
+  ).length;
+  const trainingPageCount = recentTrainingPages.length;
 
   useEffect(() => {
     void loadRecentTrainingPages();
@@ -260,6 +267,37 @@ export function DashboardClient() {
     }
   }
 
+  async function handleArchiveSelectedKnowledgeItem() {
+    if (!selectedKnowledgeItem) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/knowledge-items/${selectedKnowledgeItem.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ userId })
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to archive knowledge item.");
+      }
+
+      await loadRecentTrainingPages();
+      setHistoryState({
+        loading: false,
+        message: "Knowledge item archived."
+      });
+    } catch {
+      setHistoryState({
+        loading: false,
+        message: "Failed to archive knowledge item."
+      });
+    }
+  }
+
   return (
     <main className="min-h-screen bg-[#f8f7f3] px-6 py-10 text-black">
       <div className="mx-auto max-w-6xl">
@@ -304,6 +342,33 @@ export function DashboardClient() {
               <div className="rounded-2xl bg-black/5 px-4 py-3 text-sm text-black/55">
                 {userId || "No user selected"}
               </div>
+            </div>
+          </div>
+
+          <div className="mt-5 grid gap-3 sm:grid-cols-4">
+            <div className="rounded-2xl bg-black/5 px-4 py-3">
+              <div className="text-xs uppercase tracking-[0.22em] text-black/40">
+                Knowledge
+              </div>
+              <div className="mt-1 text-2xl font-semibold">{activeKnowledgeCount}</div>
+            </div>
+            <div className="rounded-2xl bg-black/5 px-4 py-3">
+              <div className="text-xs uppercase tracking-[0.22em] text-black/40">
+                Archived
+              </div>
+              <div className="mt-1 text-2xl font-semibold">{archivedKnowledgeCount}</div>
+            </div>
+            <div className="rounded-2xl bg-black/5 px-4 py-3">
+              <div className="text-xs uppercase tracking-[0.22em] text-black/40">
+                Trainings
+              </div>
+              <div className="mt-1 text-2xl font-semibold">{trainingPageCount}</div>
+            </div>
+            <div className="rounded-2xl bg-black/5 px-4 py-3">
+              <div className="text-xs uppercase tracking-[0.22em] text-black/40">
+                Selected
+              </div>
+              <div className="mt-1 text-2xl font-semibold">{selectedCount}</div>
             </div>
           </div>
         </section>
@@ -538,7 +603,7 @@ export function DashboardClient() {
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <h3 className="text-sm font-medium uppercase tracking-[0.22em] text-black/40">
-                    Recent knowledge
+                    Knowledge history
                   </h3>
                   <p className="mt-2 text-sm text-black/55">
                     Pull the latest captured notes for the current user.
@@ -645,6 +710,16 @@ export function DashboardClient() {
                     >
                       Copy content
                     </button>
+                    <button
+                      type="button"
+                      onClick={() => void handleArchiveSelectedKnowledgeItem()}
+                      disabled={selectedKnowledgeItem.status === "archived"}
+                      className="rounded-full border border-black/10 px-4 py-2 text-xs font-medium uppercase tracking-[0.2em] text-black transition hover:border-black/20 hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {selectedKnowledgeItem.status === "archived"
+                        ? "Archived"
+                        : "Archive item"}
+                    </button>
                   </div>
 
                   <div className="mt-4 grid gap-3 text-sm text-black/60 sm:grid-cols-2">
@@ -688,7 +763,7 @@ export function DashboardClient() {
 
             <div className="rounded-[2rem] border border-black/10 bg-white px-6 py-6 shadow-[0_24px_90px_-75px_rgba(0,0,0,0.35)]">
               <h3 className="text-sm font-medium uppercase tracking-[0.22em] text-black/40">
-                Recent results
+                Training history
               </h3>
 
               <div className="mt-4 space-y-3">

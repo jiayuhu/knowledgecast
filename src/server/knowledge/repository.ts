@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { getDb } from "../db/client";
 import { knowledgeItems } from "../db/schema";
 
@@ -35,6 +35,42 @@ export async function createKnowledgeItem(input: {
   const db = await getDb();
   await db.insert(knowledgeItems).values(record).run();
   return record;
+}
+
+export async function archiveKnowledgeItem(id: string, userId: string) {
+  const db = await getDb();
+  const now = new Date();
+
+  await db
+    .update(knowledgeItems)
+    .set({
+      status: "archived",
+      updatedAt: now
+    })
+    .where(and(eq(knowledgeItems.id, id), eq(knowledgeItems.userId, userId)))
+    .run();
+
+  const rows = await db
+    .select()
+    .from(knowledgeItems)
+    .where(and(eq(knowledgeItems.id, id), eq(knowledgeItems.userId, userId)))
+    .all();
+  const row = rows[0];
+
+  if (!row) {
+    throw new Error(`Knowledge item not found: ${id}`);
+  }
+
+  return {
+    id: row.id,
+    userId: row.userId,
+    sourceType: row.sourceType,
+    title: row.title,
+    content: row.content,
+    status: row.status,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt
+  };
 }
 
 export async function listKnowledgeItems(userId: string) {

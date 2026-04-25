@@ -1,5 +1,9 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { createKnowledgeItem, listRecentKnowledgeItems } from "@/server/knowledge/repository";
+import {
+  archiveKnowledgeItem,
+  createKnowledgeItem,
+  listRecentKnowledgeItems
+} from "@/server/knowledge/repository";
 import { createShareLink, revokeShareLink } from "@/server/share/repository";
 import { getDb } from "@/server/db/client";
 import { knowledgeItems, shareLinks } from "@/server/db/schema";
@@ -41,5 +45,18 @@ describe("share repository", () => {
     expect(recentItems).toHaveLength(2);
     expect(recentItems[0]?.title).toBe("Second");
     expect(recentItems[1]?.title).toBe("First");
+  });
+
+  it("archives a knowledge item", async () => {
+    const created = await createKnowledgeItem({
+      userId: "user_1",
+      sourceType: "text",
+      title: "First",
+      content: "First note"
+    });
+
+    const archived = await archiveKnowledgeItem(created.id, "user_1");
+
+    expect(archived.status).toBe("archived");
   });
 });
