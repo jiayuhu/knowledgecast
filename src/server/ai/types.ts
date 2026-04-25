@@ -9,9 +9,11 @@ export type OrganizationResult = {
   followUpQuestions: string[];
 };
 
+export type OrganizationInput = {
+  fragments: KnowledgeFragment[];
+  systemPrompt: string;
+};
+
 export type AIProvider = {
-  generate(input: {
-    fragments: KnowledgeFragment[];
-    systemPrompt: string;
-  }): Promise<OrganizationResult>;
+  generate(input: OrganizationInput): Promise<OrganizationResult>;
 };

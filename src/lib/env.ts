@@ -7,6 +7,7 @@ export function parseEnv(raw: Record<string, string | undefined>) {
   return {
     DATABASE_URL: databaseUrl,
     OPENAI_API_KEY: raw.OPENAI_API_KEY ?? "",
+    OPENAI_MODEL: raw.OPENAI_MODEL ?? "gpt-5.4-mini",
     SMTP_FROM: raw.SMTP_FROM ?? ""
   };
 }
