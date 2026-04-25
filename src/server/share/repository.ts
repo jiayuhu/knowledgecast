@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
+import { recordAuditEvent } from "../audit";
 import { getDb } from "../db/client";
 import { shareLinks } from "../db/schema";
 
@@ -41,6 +42,15 @@ export async function createShareLink(input: {
     updatedAt: record.updatedAt
   }).run();
 
+  void recordAuditEvent({
+    eventType: "share_link_created",
+    payload: {
+      shareLinkId: record.id,
+      trainingPageId: record.trainingPageId,
+      token: record.token
+    }
+  });
+
   return record;
 }
 
@@ -63,6 +73,15 @@ export async function revokeShareLink(id: string) {
   if (!row) {
     throw new Error(`Share link not found: ${id}`);
   }
+
+  void recordAuditEvent({
+    eventType: "share_link_revoked",
+    payload: {
+      shareLinkId: row.id,
+      trainingPageId: row.trainingPageId,
+      token: row.token
+    }
+  });
 
   return {
     id: row.id,

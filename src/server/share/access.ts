@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { and, eq, gt } from "drizzle-orm";
+import { recordAuditEvent } from "../audit";
 import { getDb } from "../db/client";
 import { accessTokens, shareLinks, trainingPages } from "../db/schema";
 import { generateOtpCode, validateOtp } from "./otp";
@@ -49,6 +50,14 @@ export function createShareOtpChallenge(input: {
   };
 
   otpChallenges.set(challengeKey(input.shareToken, input.email), challenge);
+  void recordAuditEvent({
+    eventType: "share_otp_requested",
+    payload: {
+      shareToken: input.shareToken,
+      email: input.email
+    },
+    actorEmail: input.email
+  });
   return challenge;
 }
 
@@ -73,6 +82,14 @@ export function verifyShareOtpChallenge(input: {
   }
 
   otpChallenges.delete(challengeKey(input.shareToken, input.email));
+  void recordAuditEvent({
+    eventType: "share_otp_verified",
+    payload: {
+      shareToken: input.shareToken,
+      email: input.email
+    },
+    actorEmail: input.email
+  });
   return challenge;
 }
 
@@ -94,6 +111,15 @@ export async function createAccessGrant(input: {
   };
 
   await db.insert(accessTokens).values(grant).run();
+  void recordAuditEvent({
+    eventType: "access_granted",
+    payload: {
+      shareLinkId: input.shareLinkId,
+      email: input.email,
+      accessToken: grant.token
+    },
+    actorEmail: input.email
+  });
   return grant;
 }
 
