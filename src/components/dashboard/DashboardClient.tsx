@@ -629,17 +629,21 @@ export function DashboardClient() {
                 {recentKnowledgeItems.length > 0 ? (
                   recentKnowledgeItems.map((item) => {
                     const active = selectedKnowledgeItemId === item.id;
+                    const archived = item.status === "archived";
+                    const itemClassName = archived
+                      ? active
+                        ? "border-black/25 bg-black/10 text-black"
+                        : "border-black/10 bg-black/[0.02] text-black/50 border-dashed hover:border-black/20"
+                      : active
+                        ? "border-black bg-black text-white"
+                        : "border-black/10 bg-black/5 hover:border-black/20";
 
                     return (
                       <button
                         key={item.id}
                         type="button"
                         onClick={() => setSelectedKnowledgeItemId(item.id)}
-                        className={`w-full rounded-2xl border px-4 py-4 text-left transition ${
-                          active
-                            ? "border-black bg-black text-white"
-                            : "border-black/10 bg-black/5 hover:border-black/20"
-                        }`}
+                        className={`w-full rounded-2xl border px-4 py-4 text-left transition ${itemClassName}`}
                       >
                         <div className="flex items-start justify-between gap-4">
                           <div>
@@ -648,7 +652,13 @@ export function DashboardClient() {
                             </div>
                             <div
                               className={`mt-1 text-sm ${
-                                active ? "text-white/70" : "text-black/55"
+                                archived
+                                  ? active
+                                    ? "text-black/70"
+                                    : "text-black/45"
+                                  : active
+                                    ? "text-white/70"
+                                    : "text-black/55"
                               }`}
                             >
                               {item.sourceType} · {item.status} ·{" "}
@@ -657,17 +667,27 @@ export function DashboardClient() {
                           </div>
                           <span
                             className={`rounded-full px-3 py-1 text-xs uppercase tracking-[0.2em] ${
-                              active
-                                ? "bg-white/10 text-white"
-                                : "bg-black/5 text-black/45"
+                              archived
+                                ? active
+                                  ? "bg-black/10 text-black/70"
+                                  : "bg-black/5 text-black/35"
+                                : active
+                                  ? "bg-white/10 text-white"
+                                  : "bg-black/5 text-black/45"
                             }`}
                           >
-                            open
+                            {archived ? "archived" : "open"}
                           </span>
                         </div>
                         <p
                           className={`mt-3 line-clamp-2 text-sm leading-6 ${
-                            active ? "text-white/80" : "text-black/65"
+                            archived
+                              ? active
+                                ? "text-black/75"
+                                : "text-black/45"
+                              : active
+                                ? "text-white/80"
+                                : "text-black/65"
                           }`}
                         >
                           {item.content}
