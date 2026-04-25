@@ -46,6 +46,7 @@ type RecentKnowledgeItem = {
   content: string;
   status: string;
   createdAt: string;
+  updatedAt: string;
 };
 
 const sourceTypeOptions = [
@@ -85,12 +86,15 @@ export function DashboardClient() {
   });
   const [recentKnowledgeItems, setRecentKnowledgeItems] = useState<RecentKnowledgeItem[]>([]);
   const [recentTrainingPages, setRecentTrainingPages] = useState<RecentTrainingPage[]>([]);
+  const [selectedKnowledgeItemId, setSelectedKnowledgeItemId] = useState<string | null>(null);
   const [latestResult, setLatestResult] = useState<TrainingPageResult | null>(null);
 
   const selectedCount = selectedItemIds.length;
   const generatedShareUrl = latestResult
     ? `/share/${latestResult.shareLink.token}`
     : "";
+  const selectedKnowledgeItem =
+    recentKnowledgeItems.find((item) => item.id === selectedKnowledgeItemId) ?? null;
 
   useEffect(() => {
     void loadRecentTrainingPages();
@@ -119,6 +123,15 @@ export function DashboardClient() {
 
       setRecentKnowledgeItems(knowledgePayload.knowledgeItems);
       setRecentTrainingPages(trainingPayload.trainingPages);
+      setSelectedKnowledgeItemId((current) => {
+        if (!current) {
+          return knowledgePayload.knowledgeItems[0]?.id ?? null;
+        }
+
+        return knowledgePayload.knowledgeItems.some((item) => item.id === current)
+          ? current
+          : knowledgePayload.knowledgeItems[0]?.id ?? null;
+      });
       setHistoryState({
         loading: false,
         message:
@@ -511,34 +524,118 @@ export function DashboardClient() {
 
               <div className="mt-4 space-y-3">
                 {recentKnowledgeItems.length > 0 ? (
-                  recentKnowledgeItems.map((item) => (
-                    <div
-                      key={item.id}
-                      className="rounded-2xl border border-black/10 bg-black/3 px-4 py-4"
-                    >
-                      <div className="flex items-start justify-between gap-4">
-                        <div>
-                          <div className="font-medium">{item.title}</div>
-                          <div className="mt-1 text-sm text-black/55">
-                            {item.sourceType} · {item.status} ·{" "}
-                            {new Date(item.createdAt).toLocaleString()}
+                  recentKnowledgeItems.map((item) => {
+                    const active = selectedKnowledgeItemId === item.id;
+
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => setSelectedKnowledgeItemId(item.id)}
+                        className={`w-full rounded-2xl border px-4 py-4 text-left transition ${
+                          active
+                            ? "border-black bg-black text-white"
+                            : "border-black/10 bg-black/5 hover:border-black/20"
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-4">
+                          <div>
+                            <div className="font-medium">
+                              {item.title ?? "Untitled note"}
+                            </div>
+                            <div
+                              className={`mt-1 text-sm ${
+                                active ? "text-white/70" : "text-black/55"
+                              }`}
+                            >
+                              {item.sourceType} · {item.status} ·{" "}
+                              {new Date(item.createdAt).toLocaleString()}
+                            </div>
                           </div>
+                          <span
+                            className={`rounded-full px-3 py-1 text-xs uppercase tracking-[0.2em] ${
+                              active
+                                ? "bg-white/10 text-white"
+                                : "bg-black/5 text-black/45"
+                            }`}
+                          >
+                            open
+                          </span>
                         </div>
-                        <span className="rounded-full bg-black/5 px-3 py-1 text-xs uppercase tracking-[0.2em] text-black/45">
-                          knowledge
-                        </span>
-                      </div>
-                      <p className="mt-3 line-clamp-2 text-sm leading-6 text-black/65">
-                        {item.content}
-                      </p>
-                    </div>
-                  ))
+                        <p
+                          className={`mt-3 line-clamp-2 text-sm leading-6 ${
+                            active ? "text-white/80" : "text-black/65"
+                          }`}
+                        >
+                          {item.content}
+                        </p>
+                      </button>
+                    );
+                  })
                 ) : (
                   <div className="rounded-2xl border border-dashed border-black/10 px-4 py-8 text-sm text-black/50">
                     No recent knowledge items yet.
                   </div>
                 )}
               </div>
+
+              {selectedKnowledgeItem ? (
+                <div className="mt-6 rounded-[1.75rem] border border-black/10 bg-black/[0.03] px-5 py-5">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-medium uppercase tracking-[0.22em] text-black/40">
+                        Detail drawer
+                      </p>
+                      <h4 className="mt-2 text-2xl font-semibold tracking-tight">
+                        {selectedKnowledgeItem.title ?? "Untitled note"}
+                      </h4>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedKnowledgeItemId(null)}
+                      className="rounded-full border border-black/10 px-3 py-2 text-xs font-medium uppercase tracking-[0.2em] text-black/55 transition hover:border-black/20 hover:bg-black/5"
+                    >
+                      Close
+                    </button>
+                  </div>
+
+                  <div className="mt-4 grid gap-3 text-sm text-black/60 sm:grid-cols-2">
+                    <div className="rounded-2xl bg-white px-4 py-3">
+                      <div className="text-black/40">Source type</div>
+                      <div className="mt-1 font-medium text-black">
+                        {selectedKnowledgeItem.sourceType}
+                      </div>
+                    </div>
+                    <div className="rounded-2xl bg-white px-4 py-3">
+                      <div className="text-black/40">Status</div>
+                      <div className="mt-1 font-medium text-black">
+                        {selectedKnowledgeItem.status}
+                      </div>
+                    </div>
+                    <div className="rounded-2xl bg-white px-4 py-3">
+                      <div className="text-black/40">Created</div>
+                      <div className="mt-1 font-medium text-black">
+                        {new Date(selectedKnowledgeItem.createdAt).toLocaleString()}
+                      </div>
+                    </div>
+                    <div className="rounded-2xl bg-white px-4 py-3">
+                      <div className="text-black/40">Updated</div>
+                      <div className="mt-1 font-medium text-black">
+                        {new Date(selectedKnowledgeItem.updatedAt).toLocaleString()}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 rounded-2xl bg-white px-4 py-4">
+                    <div className="text-sm font-medium uppercase tracking-[0.22em] text-black/40">
+                      Content
+                    </div>
+                    <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-black/75">
+                      {selectedKnowledgeItem.content}
+                    </p>
+                  </div>
+                </div>
+              ) : null}
             </div>
 
             <div className="rounded-[2rem] border border-black/10 bg-white px-6 py-6 shadow-[0_24px_90px_-75px_rgba(0,0,0,0.35)]">
