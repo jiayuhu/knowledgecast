@@ -190,6 +190,8 @@ KnowledgeCast 的定位不是泛知识管理工具，也不是全能内容平台
 - `AccessToken`：一次访问或短期访问凭证
 - `AuditLog`：访问记录和操作记录
 
+数据库层的表名和列名统一使用 `snake_case`；应用代码中的类型名和变量名保持 `camelCase` / `PascalCase`。
+
 ### 9.2 状态流转
 
 `KnowledgeItem -> KnowledgeDraft -> KnowledgeOutline -> TrainingPage -> ShareLink`
@@ -211,8 +213,15 @@ KnowledgeCast 的定位不是泛知识管理工具，也不是全能内容平台
 
 - 前端负责录入、编辑、阅读
 - 后端负责鉴权、AI 编排、内容存储、分享控制
+- 数据库层采用 `Drizzle ORM + SQLite`
 - 数据库保存结构化内容和访问状态
 - 对象存储可用于简单文件上传
+
+数据库命名约定：
+
+- 表名使用 `snake_case`
+- 列名使用 `snake_case`
+- TypeScript 层保持自然命名，不为了数据库强行改写业务代码
 
 ### 10.2 为什么选这个架构
 

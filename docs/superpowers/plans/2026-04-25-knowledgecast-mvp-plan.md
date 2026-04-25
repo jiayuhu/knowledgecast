@@ -4,9 +4,9 @@
 
 **Goal:** Build the first shippable KnowledgeCast web MVP: users can capture fragmented knowledge, have it organized by AI, generate a private internal training page, and share it through an access-controlled link.
 
-**Architecture:** Start with a single web app rather than splitting services early. Use a Next.js App Router frontend, a Prisma-backed database layer, and small server-side service modules for ingestion, AI orchestration, sharing, and access control. Keep rendering and permission checks on the server so share pages do not expose raw HTML downloads.
+**Architecture:** Start with a single web app rather than splitting services early. Use a Next.js App Router frontend, a Drizzle-backed SQLite database layer, and small server-side service modules for ingestion, AI orchestration, sharing, and access control. Keep rendering and permission checks on the server so share pages do not expose raw HTML downloads. Keep database identifiers in `snake_case` while TypeScript stays in `camelCase` / `PascalCase`.
 
-**Tech Stack:** Next.js 15, TypeScript, React, Prisma, PostgreSQL, Tailwind CSS, Zod, Vitest, and a simple email OTP transport abstraction for local and production mail delivery.
+**Tech Stack:** Next.js 15, TypeScript, React, Drizzle ORM, SQLite, Tailwind CSS, Zod, Vitest, and a simple email OTP transport abstraction for local and production mail delivery.
 
 ---
 
@@ -20,8 +20,8 @@
 - Create: `postcss.config.mjs`
 - Create: `tailwind.config.ts`
 - Create: `vitest.config.ts`
+- Create: `drizzle.config.ts`
 - Create: `.env.example`
-- Create: `docker-compose.yml`
 - Create: `src/app/layout.tsx`
 - Create: `src/app/page.tsx`
 - Create: `src/styles/globals.css`
@@ -66,20 +66,20 @@ export function parseEnv(raw: Record<string, string | undefined>) {
 - [ ] **Step 4: Run the test to verify it passes**
 
 Run: `npx vitest run tests/lib/env.test.ts -v`
-Expected: PASS.
+Expected: PASS. `.env.example` should use `DATABASE_URL="file:./dev.db"`.
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add package.json tsconfig.json next.config.ts eslint.config.mjs postcss.config.mjs tailwind.config.ts vitest.config.ts .env.example docker-compose.yml src/app/layout.tsx src/app/page.tsx src/styles/globals.css src/lib/env.ts tests/lib/env.test.ts
+git add package.json tsconfig.json next.config.ts eslint.config.mjs postcss.config.mjs tailwind.config.ts vitest.config.ts drizzle.config.ts .env.example src/app/layout.tsx src/app/page.tsx src/styles/globals.css src/lib/env.ts tests/lib/env.test.ts
 git commit -m "feat: bootstrap KnowledgeCast app shell"
 ```
 
 ### Task 2: Add persistence and core data model
 
 **Files:**
-- Create: `prisma/schema.prisma`
-- Create: `src/server/db.ts`
+- Create: `src/server/db/client.ts`
+- Create: `src/server/db/schema.ts`
 - Create: `src/server/knowledge/repository.ts`
 - Create: `src/server/share/repository.ts`
 - Create: `tests/server/repository.test.ts`
@@ -111,40 +111,42 @@ Expected: FAIL because repository functions and schema are not implemented yet.
 
 - [ ] **Step 3: Write the minimal implementation**
 
-Implement the Prisma schema with these core models:
+Implement the Drizzle schema with these core tables and a snake_case naming rule:
 
-```prisma
-model KnowledgeItem {
-  id         String   @id @default(cuid())
-  userId     String
-  sourceType String
-  title      String?
-  content    String
-  status     String   @default("draft")
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-}
+```ts
+import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
-model TrainingPage {
-  id          String   @id @default(cuid())
-  userId      String
-  title       String
-  outlineJson String
-  contentJson String
-  status      String   @default("ready")
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-}
+export const knowledgeItems = sqliteTable("knowledge_items", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull(),
+  sourceType: text("source_type").notNull(),
+  title: text("title"),
+  content: text("content").notNull(),
+  status: text("status").notNull().default("draft"),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+});
 
-model ShareLink {
-  id          String   @id @default(cuid())
-  trainingPageId String
-  token       String   @unique
-  status      String   @default("active")
-  expiresAt   DateTime
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-}
+export const trainingPages = sqliteTable("training_pages", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull(),
+  title: text("title").notNull(),
+  outlineJson: text("outline_json").notNull(),
+  contentJson: text("content_json").notNull(),
+  status: text("status").notNull().default("ready"),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+});
+
+export const shareLinks = sqliteTable("share_links", {
+  id: text("id").primaryKey(),
+  trainingPageId: text("training_page_id").notNull(),
+  token: text("token").notNull().unique(),
+  status: text("status").notNull().default("active"),
+  expiresAt: integer("expires_at", { mode: "timestamp_ms" }).notNull(),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+});
 ```
 
 Add repository functions that create a share link and flip `status` to `revoked`.
@@ -157,7 +159,7 @@ Expected: PASS.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add prisma/schema.prisma src/server/db.ts src/server/knowledge/repository.ts src/server/share/repository.ts tests/server/repository.test.ts
+git add src/server/db/client.ts src/server/db/schema.ts src/server/knowledge/repository.ts src/server/share/repository.ts tests/server/repository.test.ts
 git commit -m "feat: add KnowledgeCast persistence layer"
 ```
 

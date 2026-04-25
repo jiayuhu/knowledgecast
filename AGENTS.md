@@ -32,6 +32,7 @@ KnowledgeCast is a small SaaS for turning fragmented knowledge into structured c
 - Keep changes scoped to the user's current request
 - Prefer simple, shippable implementations over broad platform work
 - Do not add extra product surfaces without approval
+- Use snake_case for database tables and columns; keep TypeScript identifiers in camelCase/PascalCase
 - Preserve existing user changes; do not revert unrelated work
 - Use `apply_patch` for file edits
 - Use non-destructive git commands only
