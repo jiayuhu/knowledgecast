@@ -2,6 +2,15 @@
 
 KnowledgeCast is a small SaaS for capturing fragmented knowledge, organizing it with AI, and turning it into private internal training pages.
 
+## Shipped MVP
+
+- Capture fragmented knowledge from text, voice, links, and simple Markdown or text uploads
+- Organize captured knowledge with AI into deduplicated, clustered training content
+- Generate shareable internal training pages from the organized content
+- Review recent knowledge items and training pages in a lightweight dashboard workspace
+- Open private share pages with email OTP access control
+- Copy or archive knowledge items from the dashboard detail view
+
 ## Local Setup
 
 1. Install dependencies:
