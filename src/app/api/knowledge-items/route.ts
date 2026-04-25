@@ -1,17 +1,23 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { storeKnowledgeInput } from "@/server/ingest/storage";
+import { listRecentKnowledgeItems } from "@/server/knowledge/repository";
 
-const createKnowledgeItemSchema = z.object({
+const listKnowledgeItemsSchema = z.object({
   userId: z.string().min(1),
-  sourceType: z.enum(["text", "url", "markdown", "voice"]),
-  content: z.string().min(1),
-  title: z.string().nullable().optional()
+  limit: z.coerce.number().int().positive().max(20).optional()
 });
 
-export async function POST(request: Request) {
-  const payload = createKnowledgeItemSchema.parse(await request.json());
-  const item = await storeKnowledgeInput(payload);
+export async function GET(request: Request) {
+  const url = new URL(request.url);
+  const payload = listKnowledgeItemsSchema.parse({
+    userId: url.searchParams.get("userId") ?? "",
+    limit: url.searchParams.get("limit") ?? undefined
+  });
 
-  return NextResponse.json({ item }, { status: 201 });
+  const knowledgeItems = await listRecentKnowledgeItems(
+    payload.userId,
+    payload.limit ?? 5
+  );
+
+  return NextResponse.json({ knowledgeItems });
 }

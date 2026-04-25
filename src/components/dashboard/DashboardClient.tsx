@@ -39,6 +39,15 @@ type RecentTrainingPage = {
   } | null;
 };
 
+type RecentKnowledgeItem = {
+  id: string;
+  sourceType: string;
+  title: string | null;
+  content: string;
+  status: string;
+  createdAt: string;
+};
+
 const sourceTypeOptions = [
   { value: "text", label: "Text" },
   { value: "markdown", label: "Markdown" },
@@ -74,6 +83,7 @@ export function DashboardClient() {
     loading: false,
     message: ""
   });
+  const [recentKnowledgeItems, setRecentKnowledgeItems] = useState<RecentKnowledgeItem[]>([]);
   const [recentTrainingPages, setRecentTrainingPages] = useState<RecentTrainingPage[]>([]);
   const [latestResult, setLatestResult] = useState<TrainingPageResult | null>(null);
 
@@ -91,28 +101,35 @@ export function DashboardClient() {
     setHistoryState({ loading: true, message: "" });
 
     try {
-      const response = await fetch(
-        `/api/training-pages?userId=${encodeURIComponent(userId)}&limit=5`
-      );
+      const [knowledgeResponse, trainingResponse] = await Promise.all([
+        fetch(`/api/knowledge-items?userId=${encodeURIComponent(userId)}&limit=5`),
+        fetch(`/api/training-pages?userId=${encodeURIComponent(userId)}&limit=5`)
+      ]);
 
-      if (!response.ok) {
-        throw new Error("Failed to load recent training pages.");
+      if (!knowledgeResponse.ok || !trainingResponse.ok) {
+        throw new Error("Failed to load recent history.");
       }
 
-      const payload = (await response.json()) as {
+      const knowledgePayload = (await knowledgeResponse.json()) as {
+        knowledgeItems: RecentKnowledgeItem[];
+      };
+      const trainingPayload = (await trainingResponse.json()) as {
         trainingPages: RecentTrainingPage[];
       };
 
-      setRecentTrainingPages(payload.trainingPages);
+      setRecentKnowledgeItems(knowledgePayload.knowledgeItems);
+      setRecentTrainingPages(trainingPayload.trainingPages);
       setHistoryState({
         loading: false,
-        message: payload.trainingPages.length > 0 ? "History refreshed." : "No history yet."
+        message:
+          trainingPayload.trainingPages.length > 0 || knowledgePayload.knowledgeItems.length > 0
+            ? "History refreshed."
+            : "No history yet."
       });
     } catch (error) {
       setHistoryState({
         loading: false,
-        message:
-          error instanceof Error ? error.message : "Failed to load recent training pages."
+        message: error instanceof Error ? error.message : "Failed to load recent history."
       });
     }
   }
@@ -470,10 +487,10 @@ export function DashboardClient() {
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <h3 className="text-sm font-medium uppercase tracking-[0.22em] text-black/40">
-                    Recent results
+                    Recent knowledge
                   </h3>
                   <p className="mt-2 text-sm text-black/55">
-                    Pull the latest generated pages for the current user.
+                    Pull the latest captured notes for the current user.
                   </p>
                 </div>
                 <button
@@ -491,6 +508,43 @@ export function DashboardClient() {
                   {historyState.message}
                 </p>
               ) : null}
+
+              <div className="mt-4 space-y-3">
+                {recentKnowledgeItems.length > 0 ? (
+                  recentKnowledgeItems.map((item) => (
+                    <div
+                      key={item.id}
+                      className="rounded-2xl border border-black/10 bg-black/3 px-4 py-4"
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <div className="font-medium">{item.title}</div>
+                          <div className="mt-1 text-sm text-black/55">
+                            {item.sourceType} · {item.status} ·{" "}
+                            {new Date(item.createdAt).toLocaleString()}
+                          </div>
+                        </div>
+                        <span className="rounded-full bg-black/5 px-3 py-1 text-xs uppercase tracking-[0.2em] text-black/45">
+                          knowledge
+                        </span>
+                      </div>
+                      <p className="mt-3 line-clamp-2 text-sm leading-6 text-black/65">
+                        {item.content}
+                      </p>
+                    </div>
+                  ))
+                ) : (
+                  <div className="rounded-2xl border border-dashed border-black/10 px-4 py-8 text-sm text-black/50">
+                    No recent knowledge items yet.
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="rounded-[2rem] border border-black/10 bg-white px-6 py-6 shadow-[0_24px_90px_-75px_rgba(0,0,0,0.35)]">
+              <h3 className="text-sm font-medium uppercase tracking-[0.22em] text-black/40">
+                Recent results
+              </h3>
 
               <div className="mt-4 space-y-3">
                 {recentTrainingPages.length > 0 ? (

@@ -1,11 +1,13 @@
 import { beforeEach, describe, expect, it } from "vitest";
+import { createKnowledgeItem, listRecentKnowledgeItems } from "@/server/knowledge/repository";
 import { createShareLink, revokeShareLink } from "@/server/share/repository";
 import { getDb } from "@/server/db/client";
-import { shareLinks } from "@/server/db/schema";
+import { knowledgeItems, shareLinks } from "@/server/db/schema";
 
 describe("share repository", () => {
   beforeEach(async () => {
     const db = await getDb();
+    await db.delete(knowledgeItems).run();
     await db.delete(shareLinks).run();
   });
 
@@ -18,5 +20,26 @@ describe("share repository", () => {
 
     const revoked = await revokeShareLink(created.id);
     expect(revoked.status).toBe("revoked");
+  });
+
+  it("lists recent knowledge items first", async () => {
+    await createKnowledgeItem({
+      userId: "user_1",
+      sourceType: "text",
+      title: "First",
+      content: "First note"
+    });
+    await createKnowledgeItem({
+      userId: "user_1",
+      sourceType: "markdown",
+      title: "Second",
+      content: "Second note"
+    });
+
+    const recentItems = await listRecentKnowledgeItems("user_1");
+
+    expect(recentItems).toHaveLength(2);
+    expect(recentItems[0]?.title).toBe("Second");
+    expect(recentItems[1]?.title).toBe("First");
   });
 });
