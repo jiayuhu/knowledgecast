@@ -10,9 +10,9 @@ export function parseEnv(raw: Record<string, string | undefined>) {
     DATABASE_URL: databaseUrl,
     AI_PROVIDER: provider,
     DEEPSEEK_API_KEY: raw.DEEPSEEK_API_KEY ?? "",
-    DEEPSEEK_MODEL: raw.DEEPSEEK_MODEL ?? "deepseek-chat",
+    DEEPSEEK_MODEL: raw.DEEPSEEK_MODEL ?? "deepseek-v4-flash",
     OPENAI_API_KEY: raw.OPENAI_API_KEY ?? "",
     OPENAI_MODEL: raw.OPENAI_MODEL ?? "gpt-5.4-mini",
-    SMTP_FROM: raw.SMTP_FROM ?? ""
+    SMTP_FROM: raw.SMTP_FROM ?? "",
   };
 }
