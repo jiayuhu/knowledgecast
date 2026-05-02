@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { createOpenAIProvider } from "@/server/ai/provider";
+import { createAIProvider } from "@/server/ai/provider";
 import { generateTrainingPage } from "@/server/training/service";
 
 const generateTrainingPageSchema = z.object({
@@ -11,7 +11,7 @@ const generateTrainingPageSchema = z.object({
 
 export async function POST(request: Request) {
   const payload = generateTrainingPageSchema.parse(await request.json());
-  const provider = createOpenAIProvider();
+  const provider = createAIProvider();
   const result = await generateTrainingPage(
     {
       userId: payload.userId,
