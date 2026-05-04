@@ -93,6 +93,13 @@ export const iterationHistory = sqliteTable("iteration_history", {
   slidesJson: text("slides_json").notNull(),
   createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull()
 });
+
+export const imageRefs = sqliteTable("image_refs", {
+  id: text("id").primaryKey(),
+  knowledgeItemId: text("knowledge_item_id").notNull(),
+  imagePath: text("image_path").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull()
+});
 // 数据库 schema 由 Drizzle ORM migration 系统管理。
 // 运行 `npx drizzle-kit generate` 生成 migration。
 // 运行 `npx drizzle-kit migrate` 或启动服务自动执行。

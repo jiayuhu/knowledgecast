@@ -3,6 +3,7 @@ import { enrichUrlContent, extractUrls, normalizeKnowledgeInput } from "./normal
 import { createMarkItDownClient } from "./markitdown-client";
 import { createImageHandler } from "./image-handler";
 import { createLocalStorageAdapter } from "../storage/adapter";
+import { recordImageRefs } from "../knowledge/image-refs";
 import path from "node:path";
 
 const MARKITDOWN_URL = process.env.MARKITDOWN_URL ?? "http://127.0.0.1:3001";
@@ -13,6 +14,21 @@ const storageDir = path.resolve(process.cwd(), "public/storage");
 const imageHandler = createImageHandler(
   createLocalStorageAdapter(storageDir, "/storage")
 );
+
+async function createWithRefs(input: {
+  userId: string;
+  workspaceId?: string | null;
+  sourceType: string;
+  title?: string | null;
+  content: string;
+  originalUrl?: string | null;
+}, imagePaths: string[]) {
+  const item = await createKnowledgeItem(input);
+  if (imagePaths.length > 0) {
+    await recordImageRefs(item.id, imagePaths);
+  }
+  return item;
+}
 
 export async function storeKnowledgeInput(input: {
   userId: string;
@@ -27,14 +43,14 @@ export async function storeKnowledgeInput(input: {
     imageHandler
   });
 
-  const primary = await createKnowledgeItem({
+  const primary = await createWithRefs({
     userId: input.userId,
     workspaceId: input.workspaceId,
-    sourceType: enriched.sourceType,
-    title: enriched.title,
-    content: enriched.content,
-    originalUrl: enriched.originalUrl
-  });
+    sourceType: enriched.normalized.sourceType,
+    title: enriched.normalized.title,
+    content: enriched.normalized.content,
+    originalUrl: enriched.normalized.originalUrl
+  }, enriched.imagePaths);
 
   // text/markdown 素材中提取嵌入的 URL，创建子素材
   if (
@@ -54,14 +70,14 @@ export async function storeKnowledgeInput(input: {
           imageHandler
         });
 
-        await createKnowledgeItem({
+        await createWithRefs({
           userId: input.userId,
           workspaceId: input.workspaceId,
           sourceType: "url",
-          title: childEnriched.title,
-          content: childEnriched.content,
+          title: childEnriched.normalized.title,
+          content: childEnriched.normalized.content,
           originalUrl: url
-        });
+        }, childEnriched.imagePaths);
       } catch {
         // 单条 URL 获取失败不影响其他
       }

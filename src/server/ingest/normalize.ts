@@ -69,24 +69,32 @@ export function extractUrls(text: string): string[] {
   return [...new Set(matches)];
 }
 
+export type EnrichedResult = {
+  normalized: NormalizedKnowledgeInput;
+  imagePaths: string[];
+};
+
 export async function enrichUrlContent(
   normalized: NormalizedKnowledgeInput,
   deps: IngestDeps
-): Promise<NormalizedKnowledgeInput> {
-  if (normalized.sourceType !== "url") return normalized;
+): Promise<EnrichedResult> {
+  if (normalized.sourceType !== "url") return { normalized, imagePaths: [] };
 
   const result = await deps.markitdown.convertUrl(normalized.originalUrl);
-  if (!result) return normalized;
+  if (!result) return { normalized, imagePaths: [] };
 
-  const { markdown: withLocalImages } = await deps.imageHandler.processImages(
+  const { markdown: withLocalImages, images } = await deps.imageHandler.processImages(
     result.content,
     normalized.originalUrl
   );
 
   return {
-    ...normalized,
-    title: normalized.title ?? result.title ?? extractFirstHeading(result.content),
-    content: withLocalImages
+    normalized: {
+      ...normalized,
+      title: normalized.title ?? result.title ?? extractFirstHeading(result.content),
+      content: withLocalImages
+    },
+    imagePaths: images.map((img) => img.localPath)
   };
 }
 
