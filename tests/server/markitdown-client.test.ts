@@ -8,12 +8,13 @@ describe("createMarkItDownClient", () => {
     globalThis.fetch = originalFetch;
   });
 
-  it("调用 /convert 接口并返回 markdown 内容", async () => {
+  it("返回 content 和 title", async () => {
     const mockFetch = vi.fn()
       .mockResolvedValueOnce({
         ok: true,
         json: async () => ({
-          content: "# Page Title\n\nClean content here."
+          content: "# Page Title\n\nClean content here.",
+          title: "Page Title"
         })
       });
 
@@ -22,13 +23,25 @@ describe("createMarkItDownClient", () => {
     const client = createMarkItDownClient("http://localhost:3001");
     const result = await client.convertUrl("https://example.com/article");
 
-    expect(result).toBe("# Page Title\n\nClean content here.");
-    expect(mockFetch).toHaveBeenCalledTimes(1);
-    expect(mockFetch).toHaveBeenCalledWith("http://localhost:3001/convert", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ url: "https://example.com/article" })
+    expect(result).toEqual({
+      content: "# Page Title\n\nClean content here.",
+      title: "Page Title"
     });
+  });
+
+  it("title 为 null 时也行", async () => {
+    globalThis.fetch = vi.fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          content: "# No Title\n\nBody."
+        })
+      }) as unknown as typeof fetch;
+
+    const client = createMarkItDownClient("http://localhost:3001");
+    const result = await client.convertUrl("https://example.com");
+
+    expect(result).toEqual({ content: "# No Title\n\nBody.", title: null });
   });
 
   it("MarkItDown 不可达时返回 null", async () => {

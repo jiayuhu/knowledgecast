@@ -75,16 +75,23 @@ export async function enrichUrlContent(
 ): Promise<NormalizedKnowledgeInput> {
   if (normalized.sourceType !== "url") return normalized;
 
-  const markdown = await deps.markitdown.convertUrl(normalized.originalUrl);
-  if (!markdown) return normalized;
+  const result = await deps.markitdown.convertUrl(normalized.originalUrl);
+  if (!result) return normalized;
 
   const { markdown: withLocalImages } = await deps.imageHandler.processImages(
-    markdown,
+    result.content,
     normalized.originalUrl
   );
 
   return {
     ...normalized,
+    title: normalized.title ?? result.title ?? extractFirstHeading(result.content),
     content: withLocalImages
   };
+}
+
+/** 从 Markdown 正文中提取第一个 # 标题 */
+function extractFirstHeading(markdown: string): string | null {
+  const match = markdown.match(/^#\s+(.+)$/m);
+  return match ? match[1].trim() : null;
 }

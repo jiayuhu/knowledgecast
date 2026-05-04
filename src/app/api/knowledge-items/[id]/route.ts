@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { archiveKnowledgeItem, deleteKnowledgeItem, updateKnowledgeItem } from "@/server/knowledge/repository";
+import { cleanupOrphanImages } from "@/server/knowledge/image-cleanup";
 
 const updateKnowledgeItemSchema = z.object({
   userId: z.string().min(1),
@@ -18,7 +19,9 @@ export async function DELETE(
 ) {
   const { id } = await params;
   const payload = deleteSchema.parse(await request.json());
-  await deleteKnowledgeItem(id, payload.userId);
+  const result = await deleteKnowledgeItem(id, payload.userId);
+  // 安全清理不再被引用的图片
+  cleanupOrphanImages(id, result.content);
   return NextResponse.json({ success: true });
 }
 

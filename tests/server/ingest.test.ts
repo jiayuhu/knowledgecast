@@ -18,12 +18,13 @@ describe("storeKnowledgeInput with URL", () => {
     globalThis.fetch = originalFetch;
   });
 
-  it("MarkItDown 可用时获取正文并存入 content", async () => {
+  it("MarkItDown 可用时获取正文并存入 content，标题从 MarkItDown 透传", async () => {
     globalThis.fetch = vi.fn()
       .mockResolvedValueOnce({
         ok: true,
         json: async () => ({
-          content: "# Fetched Title\n\nFetched body content."
+          content: "# Fetched Title\n\nFetched body content.",
+          title: "Fetched Title"
         })
       }) as unknown as typeof fetch;
 
@@ -35,6 +36,7 @@ describe("storeKnowledgeInput with URL", () => {
 
     expect(item.sourceType).toBe("url");
     expect(item.content).toBe("# Fetched Title\n\nFetched body content.");
+    expect(item.title).toBe("Fetched Title");
     expect(item.originalUrl).toBe("https://example.com/article");
 
     await deleteKnowledgeItem(item.id, "test_user");
