@@ -7,6 +7,7 @@ type Fragment = {
   sourceType: string;
   title: string | null;
   content: string;
+  originalUrl: string | null;
   status: string;
   createdAt: string;
 };
@@ -24,6 +25,7 @@ export function FragmentList({ userId, workspaceId }: Props) {
   const [editField, setEditField] = useState<"title" | "content" | null>(null);
   const [editValue, setEditValue] = useState("");
   const [generatingId, setGeneratingId] = useState<string | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const editInputRef = useRef<HTMLInputElement>(null);
   const editTextareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -218,14 +220,48 @@ export function FragmentList({ userId, workspaceId }: Props) {
                       rows={3}
                       className="mt-1 w-full rounded border border-blue-300 bg-white px-2 py-1 text-xs text-gray-700 outline-none focus:ring-1 focus:ring-blue-200 resize-none"
                     />
+                  ) : expandedId === f.id ? (
+                    <div className="mt-1">
+                      <pre className="w-full text-left text-xs text-gray-600 whitespace-pre-wrap font-sans leading-relaxed bg-gray-50 rounded-lg p-3 max-h-64 overflow-y-auto">
+                        {f.content}
+                      </pre>
+                      <div className="flex items-center gap-2 mt-1.5">
+                        <button
+                          onClick={() => setExpandedId(null)}
+                          className="text-xs text-gray-400 hover:text-gray-600"
+                        >
+                          收起
+                        </button>
+                        <button
+                          onClick={() => startEdit(f, "content")}
+                          className="text-xs text-blue-500 hover:text-blue-700"
+                        >
+                          编辑
+                        </button>
+                      </div>
+                    </div>
                   ) : (
                     <button
-                      onClick={() => startEdit(f, "content")}
-                      className="mt-1 block w-full text-left text-xs text-gray-500 line-clamp-2 hover:text-blue-600 cursor-text"
-                      title="点击编辑内容"
+                      onClick={() => setExpandedId(f.id)}
+                      className="mt-1 block w-full text-left text-xs text-gray-500 line-clamp-2 hover:text-blue-600 cursor-pointer"
+                      title="点击展开查看完整内容"
                     >
                       {f.content}
                     </button>
+                  )}
+                  {f.sourceType === "url" && f.originalUrl && (
+                    <a
+                      href={f.originalUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-1.5 flex items-center gap-1 text-xs text-gray-400 hover:text-blue-500 transition-colors w-fit"
+                      title={f.originalUrl}
+                    >
+                      <svg className="h-3 w-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                      </svg>
+                      <span className="truncate max-w-[280px]">{f.originalUrl}</span>
+                    </a>
                   )}
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
