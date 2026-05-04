@@ -132,6 +132,8 @@
 
 **权衡**: 本地化存储占用磁盘空间。培训类图片通常较小（截图、示意图），MVP 阶段可忽略。后续可加图片大小上限和超时配置。
 
+**加固（同日）**: URL 重写从 `indexOf` 字符串搜索改为 `match.index` 位点替换（从右往左），消除同一图片多次出现但部分下载失败时的替换错位 bug。RIFF 容器检测增加 WEBP 魔术字校验（bytes 8-11），新增 SVG 支持。
+
 ---
 
 ## ADR-009: 文本素材中嵌入 URL 的自动提取
@@ -177,6 +179,8 @@
 
 **权衡**: 长内容默认渲染可能撑高卡片。通过 `max-h-80 overflow-y-auto`（约 320px）限制高度，保持列表可扫描性。
 
+**加固（同日）**: `renderMarkdown` 在 `marked.parse()` 后增加 `sanitizeHtml` 步骤，正则过滤 `href="javascript:"` 和 `href="data:"` 协议，防止 XSS。编辑和删除操作增加 API 响应状态检查 + 失败提示。
+
 ---
 
 ## ADR-012: image_refs 表精确索引图片引用
@@ -190,7 +194,9 @@
 - `image_refs` 表可建索引，O(1) 精确查询，随素材数量增长保持性能
 - 后续可扩展为引用计数或链接修复等功能
 
-**实现**: `src/server/db/schema.ts` 定义表 → `drizzle/0005_*.sql` migration → `src/server/knowledge/image-refs.ts` 存储函数 → `src/server/knowledge/image-cleanup.ts` 双层清理。
+**实现**: `src/server/db/schema.ts` 定义表 → `drizzle/0005_*.sql` 建表 → `src/server/knowledge/image-refs.ts` 存储函数 → `src/server/knowledge/image-cleanup.ts` 双层清理。
+
+**加固（同日）**: `recordImageRefs` 从逐条 INSERT 改为批量 VALUES；`findOrphanImages` 一次 `GROUP BY` 查询替代 N 次单独计数；`imageRefs.knowledge_item_id` 添加 `REFERENCES knowledge_items(id) ON DELETE CASCADE` 约束；`deleteFile` adapter 提升为模块级单例复用。
 
 ---
 
@@ -204,3 +210,39 @@
 - URL 正文获取耗时 3-30 秒，无反馈用户容易误以为死机
 - 逐条进度让用户知道系统在工作、还需要等多久
 - 不需要服务端推送或复杂的状态机，前端按顺序执行即可提供足够反馈
+
+**优化（同日）**: 多 URL 提取从串行改为并发（限制 3 并发），服务端子素材创建使用 `Promise.allSettled`。前端进度改为 "已完成 X/Y（N 成功，M 失败）" 格式。
+
+---
+
+## ADR-014: Code Review 安全加固与性能优化
+
+**日期**: 2026-05-04
+
+**决策**: 完成全面代码审查（28 个发现），按严重度分级修复 15 项。关键修复如下：
+
+**安全**:
+- Markdown 渲染后过滤 `javascript:` 和 `data:` 链接协议，防止 XSS
+- 所有 `<` `>` 在 Markdown 解析前转义
+
+**数据正确性**:
+- DELETE API 路由 `await` 图片清理（之前 fire-and-forget）
+- 编辑/删除操作检查 HTTP 响应状态，失败时 UI 显示错误提示
+- 图片 URL 重写用 `match.index` 位点替代 `indexOf` 字符串搜索
+
+**性能**:
+- `image_refs` 批量 INSERT（1 次 vs N 次数据库往返）
+- 孤儿图片检测用 `GROUP BY`（1 次 vs N 次查询）
+- 多 URL 提取并发化（限制 3 并发）
+- `deleteFile` 的 adapter 提升为模块级单例
+
+**可观测性**:
+- `storage.ts`、`markitdown-client.ts`、`image-cleanup.ts` 的关键异常路径加 `console.error` 日志
+
+**数据库完整性**:
+- `image_refs.knowledge_item_id` 添加 `REFERENCES ... ON DELETE CASCADE` 外键约束
+
+**后续待办** (原型阶段可接受):
+- 用户身份验证（当前接受任意 `userId`）
+- PATCH only userId = archive 的隐式语义改为显式 `action` 字段
+- 测试多文件共享数据库可能冲突，后续按文件隔离
