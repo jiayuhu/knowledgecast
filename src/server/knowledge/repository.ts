@@ -71,10 +71,19 @@ export async function updateKnowledgeItem(
 
 export async function deleteKnowledgeItem(id: string, userId: string) {
   const db = await getDb();
+  // 删除前读内容，供图片清理兜底
+  const rows = await db
+    .select({ content: knowledgeItems.content })
+    .from(knowledgeItems)
+    .where(and(eq(knowledgeItems.id, id), eq(knowledgeItems.userId, userId)))
+    .all();
+
   await db
     .delete(knowledgeItems)
     .where(and(eq(knowledgeItems.id, id), eq(knowledgeItems.userId, userId)))
     .run();
+
+  return rows[0]?.content ?? null;
 }
 
 export async function archiveKnowledgeItem(id: string, userId: string) {
