@@ -27,6 +27,7 @@ export const knowledgeItems = sqliteTable("knowledge_items", {
   sourceType: text("source_type").notNull(),
   title: text("title"),
   content: text("content").notNull(),
+  originalUrl: text("original_url"),
   status: text("status").notNull().default("draft"),
   createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
   updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull()
