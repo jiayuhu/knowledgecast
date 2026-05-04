@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { listRecentKnowledgeItems, createKnowledgeItem } from "@/server/knowledge/repository";
+import { listRecentKnowledgeItems } from "@/server/knowledge/repository";
+import { storeKnowledgeInput } from "@/server/ingest/storage";
 
 const listKnowledgeItemsSchema = z.object({
   userId: z.string().min(1),
@@ -35,7 +36,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   const payload = createKnowledgeItemSchema.parse(await request.json());
-  const item = await createKnowledgeItem({
+  const item = await storeKnowledgeInput({
     userId: payload.userId,
     workspaceId: payload.workspaceId,
     sourceType: payload.sourceType,

@@ -10,6 +10,7 @@ export type KnowledgeItemRecord = {
   sourceType: string;
   title: string | null;
   content: string;
+  originalUrl: string | null;
   status: string;
   createdAt: Date;
   updatedAt: Date;
@@ -21,6 +22,7 @@ export async function createKnowledgeItem(input: {
   sourceType: string;
   title?: string | null;
   content: string;
+  originalUrl?: string | null;
 }) {
   const now = new Date();
   const record: KnowledgeItemRecord = {
@@ -30,6 +32,7 @@ export async function createKnowledgeItem(input: {
     sourceType: input.sourceType,
     title: input.title ?? null,
     content: input.content,
+    originalUrl: input.originalUrl ?? null,
     status: "draft",
     createdAt: now,
     updatedAt: now
@@ -105,6 +108,7 @@ export async function archiveKnowledgeItem(id: string, userId: string) {
     sourceType: row.sourceType,
     title: row.title,
     content: row.content,
+    originalUrl: row.originalUrl,
     status: row.status,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt
@@ -153,6 +157,7 @@ export async function listRecentKnowledgeItems(
     sourceType: row.sourceType,
     title: row.title,
     content: row.content,
+    originalUrl: row.originalUrl,
     status: row.status,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt

@@ -11,7 +11,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate"
+    "db:migrate": "drizzle-kit migrate",
+    "markitdown": "npx -y markitdown-mcp-npx --http --host 127.0.0.1 --port 3001",
+    "dev:all": "concurrently -n next,md \"npm run dev\" \"npm run markitdown\""
   },
   "dependencies": {
     "@libsql/client": "^0.15.15",
@@ -27,6 +29,7 @@
     "@types/node": "^24.0.0",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.7",
+    "concurrently": "^9.2.1",
     "drizzle-kit": "^0.31.7",
     "eslint": "^9.30.0",
     "eslint-config-next": "^15.3.0",
