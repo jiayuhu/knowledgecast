@@ -14,7 +14,8 @@ const createKnowledgeItemSchema = z.object({
   workspaceId: z.string().optional(),
   sourceType: z.enum(["text", "url", "markdown", "voice"]),
   title: z.string().nullable().optional(),
-  content: z.string().min(1)
+  content: z.string().min(1),
+  enrich: z.boolean().optional()
 });
 
 export async function GET(request: Request) {
@@ -41,7 +42,8 @@ export async function POST(request: Request) {
     workspaceId: payload.workspaceId,
     sourceType: payload.sourceType,
     title: payload.title,
-    content: payload.content
+    content: payload.content,
+    enrich: payload.enrich
   });
 
   return NextResponse.json({ item });

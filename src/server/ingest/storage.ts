@@ -36,40 +36,39 @@ export async function storeKnowledgeInput(input: {
   sourceType: "text" | "url" | "markdown" | "voice";
   content: string;
   title?: string | null;
+  /** 是否获取 URL 正文 + 提取嵌入链接。捕获素材 = false，提取 URL = true */
+  enrich?: boolean;
 }) {
+  const shouldEnrich = input.enrich ?? false;
   const normalized = normalizeKnowledgeInput(input);
-  const enriched = await enrichUrlContent(normalized, {
-    markitdown,
-    imageHandler
-  });
+
+  let finalContent = normalized.content;
+  let finalTitle = normalized.title;
+  let imagePaths: string[] = [];
+
+  if (shouldEnrich && normalized.sourceType === "url") {
+    const enriched = await enrichUrlContent(normalized, { markitdown, imageHandler });
+    finalContent = enriched.normalized.content;
+    finalTitle = enriched.normalized.title;
+    imagePaths = enriched.imagePaths;
+  }
 
   const primary = await createWithRefs({
     userId: input.userId,
     workspaceId: input.workspaceId,
-    sourceType: enriched.normalized.sourceType,
-    title: enriched.normalized.title,
-    content: enriched.normalized.content,
-    originalUrl: enriched.normalized.originalUrl
-  }, enriched.imagePaths);
+    sourceType: normalized.sourceType,
+    title: finalTitle,
+    content: finalContent,
+    originalUrl: normalized.originalUrl
+  }, imagePaths);
 
-  // text/markdown 素材中提取嵌入的 URL，创建子素材
-  if (
-    input.sourceType === "text" || input.sourceType === "markdown"
-  ) {
+  // 仅当 enrich 开启时，提取 text/markdown 中的嵌入 URL 并创建子素材
+  if (shouldEnrich && (input.sourceType === "text" || input.sourceType === "markdown")) {
     const urls = extractUrls(input.content);
-
     for (const url of urls) {
       try {
-        const childNormalized = normalizeKnowledgeInput({
-          sourceType: "url",
-          content: url
-        });
-
-        const childEnriched = await enrichUrlContent(childNormalized, {
-          markitdown,
-          imageHandler
-        });
-
+        const childNormalized = normalizeKnowledgeInput({ sourceType: "url", content: url });
+        const childEnriched = await enrichUrlContent(childNormalized, { markitdown, imageHandler });
         await createWithRefs({
           userId: input.userId,
           workspaceId: input.workspaceId,

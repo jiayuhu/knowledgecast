@@ -18,7 +18,7 @@ describe("storeKnowledgeInput with URL", () => {
     globalThis.fetch = originalFetch;
   });
 
-  it("MarkItDown 可用时获取正文并存入 content，标题从 MarkItDown 透传", async () => {
+  it("enrich=true 时获取 URL 正文并透传标题", async () => {
     globalThis.fetch = vi.fn()
       .mockResolvedValueOnce({
         ok: true,
@@ -31,7 +31,8 @@ describe("storeKnowledgeInput with URL", () => {
     const item = await storeKnowledgeInput({
       userId: "test_user",
       sourceType: "url",
-      content: "https://example.com/article"
+      content: "https://example.com/article",
+      enrich: true
     });
 
     expect(item.sourceType).toBe("url");
@@ -42,13 +43,12 @@ describe("storeKnowledgeInput with URL", () => {
     await deleteKnowledgeItem(item.id, "test_user");
   });
 
-  it("MarkItDown 不可达时降级存储 URL 原文", async () => {
-    globalThis.fetch = vi.fn().mockRejectedValue(new Error("ECONNREFUSED")) as unknown as typeof fetch;
-
+  it("enrich=false 时原样存储 URL 不获取正文", async () => {
     const item = await storeKnowledgeInput({
       userId: "test_user",
       sourceType: "url",
-      content: "https://example.com/article"
+      content: "https://example.com/article",
+      enrich: false
     });
 
     expect(item.sourceType).toBe("url");

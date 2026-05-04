@@ -43,7 +43,8 @@ async function createUrlItem(
       workspaceId,
       sourceType: "url",
       title: null,
-      content: url
+      content: url,
+      enrich: true  // 提取 URL：获取正文 + 图片
     })
   });
   if (!res.ok) throw new Error("创建失败");
@@ -101,7 +102,8 @@ export function CaptureInput({ userId, workspaceId, onDone }: Props) {
           workspaceId,
           sourceType,
           title: null,
-          content: input
+          content: input,
+          enrich: false  // 捕获素材：原样保存，不穿透 URL
         })
       });
 
