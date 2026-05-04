@@ -23,24 +23,7 @@ describe("storeKnowledgeInput with URL", () => {
       .mockResolvedValueOnce({
         ok: true,
         json: async () => ({
-          jsonrpc: "2.0",
-          id: 1,
-          result: {
-            protocolVersion: "2024-11-05",
-            capabilities: {},
-            serverInfo: { name: "markitdown", version: "0.1.0" }
-          }
-        })
-      })
-      .mockResolvedValueOnce({ ok: true })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          jsonrpc: "2.0",
-          id: 2,
-          result: {
-            content: [{ type: "text", text: "# Fetched Title\n\nFetched body content." }]
-          }
+          content: "# Fetched Title\n\nFetched body content."
         })
       }) as unknown as typeof fetch;
 

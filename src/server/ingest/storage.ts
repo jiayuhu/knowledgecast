@@ -5,9 +5,9 @@ import { createImageHandler } from "./image-handler";
 import { createLocalStorageAdapter } from "../storage/adapter";
 import path from "node:path";
 
-const MCP_URL = process.env.MARKITDOWN_MCP_URL ?? "http://127.0.0.1:3001/mcp";
+const MARKITDOWN_URL = process.env.MARKITDOWN_URL ?? "http://127.0.0.1:3001";
 
-const markitdown = createMarkItDownClient(MCP_URL);
+const markitdown = createMarkItDownClient(MARKITDOWN_URL);
 
 const storageDir = path.resolve(process.cwd(), "public/storage");
 const imageHandler = createImageHandler(

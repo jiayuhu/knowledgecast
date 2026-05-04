@@ -12,7 +12,7 @@
     "test:watch": "vitest",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "markitdown": "npx -y markitdown-mcp-npx --http --host 127.0.0.1 --port 3001",
+    "markitdown": "python scripts/markitdown-server.py --host 127.0.0.1 --port 3001",
     "dev:all": "concurrently -n next,md \"npm run dev\" \"npm run markitdown\""
   },
   "dependencies": {
