@@ -133,9 +133,12 @@ Base: `/api`
 | workspaceId | body | 否 | |
 | sourceType | body | 是 | `text` / `url` / `markdown` / `voice` |
 | title | body | 否 | |
-| content | body | 是 | URL 素材传入链接地址 |
+| content | body | 是 | URL 素材传入链接地址；text/markdown 中可含链接 |
 
-**行为**: `url` 类型会同步获取页面正文（耗时 3-30 秒），其他类型直接存储。
+**行为**: 
+- `url` 类型：同步获取页面正文（MarkItDown），耗时 3-30 秒
+- `text` / `markdown` 类型：直接存储后扫描内容中的 URL，为每个 URL 创建子素材并获取正文
+- MarkItDown 不可达时降级为存储 URL 原文
 
 **返回** `{ item: KnowledgeItem }`
 
@@ -161,13 +164,13 @@ Base: `/api`
 
 ### `POST /api/knowledge-items/generate-title`
 
-AI 为素材内容自动生成简短标题。
+AI 为素材内容自动生成简短标题。超长内容自动截取前 3000 字符生成。
 
 | 参数 | 类型 | 必填 | 说明 |
 |------|------|------|------|
-| content | body | 是 | 素材内容，最大 5000 字符 |
+| content | body | 是 | 素材内容，自动截断至 3000 字符 |
 
-**返回** `{ title: string }`（10 字以内）
+**返回** `{ title: string }`（20 字以内）
 
 ---
 
@@ -267,6 +270,7 @@ type KnowledgeItem = {
   sourceType: "text" | "url" | "markdown" | "voice";
   title: string | null;
   content: string;
+  originalUrl: string | null;
   status: "draft" | "archived";
   createdAt: string;
   updatedAt: string;

@@ -8,11 +8,12 @@
 
 ```bash
 npm install
-cp .env.example .env   # 填入 DEEPSEEK_API_KEY
-npm run dev:all         # 启动 Next.js + MarkItDown sidecar → http://localhost:3000
+cp .env.example .env            # 填入 DEEPSEEK_API_KEY
+pip install 'markitdown>=0.1.0,<0.1.4'  # 一次性安装 URL 正文获取依赖
+npm run dev:all                  # Next.js + MarkItDown → http://localhost:3000
 ```
 
-> 如果不需要 URL 正文获取功能，可以只用 `npm run dev`（不启动 MarkItDown）。提交 URL 素材时系统会降级为存储链接原文。
+> 如果不需要 URL 正文获取功能，可以只用 `npm run dev`（MarkItDown 不可达时自动降级）。
 
 ## 项目结构
 
@@ -36,11 +37,16 @@ src/
 │   ├── area/repository.ts            # 工作区 CRUD
 │   ├── workspace/repository.ts       # 工作集 CRUD
 │   ├── knowledge/repository.ts       # 素材 CRUD
-│   ├── ingest/                       # 素材采集管线（规范化 + URL获取 + 图片处理）
+│   ├── ingest/                       # 素材采集管线
+│   │   ├── normalize.ts              # 规范化 + 嵌入 URL 提取
+│   │   ├── storage.ts                # 管线编排（主素材 + 子素材创建）
+│   │   ├── markitdown-client.ts      # MarkItDown HTTP 客户端
+│   │   └── image-handler.ts          # 图片下载 + MD5 去重 + URL 重写
 │   ├── storage/adapter.ts            # 可插拔存储适配器（本地文件系统/S3/R2）
 │   ├── training/                     # 培训页 + 框架模板
 │   └── share/                        # 分享链接 + 访问控制
-└── tests/                            # Vitest 单元测试
+├── scripts/markitdown-server.py      # MarkItDown HTTP 包装服务
+└── tests/                            # Vitest 单元测试（独立 DB）
 ```
 
 ## 核心概念
@@ -60,8 +66,9 @@ src/
 | 前端 | Next.js 15 + React 19 + Tailwind CSS v4 |
 | 数据库 | SQLite + Drizzle ORM + Drizzle Migration |
 | AI | DeepSeek API（默认）/ OpenAI API（可选） |
-| 内容获取 | MarkItDown MCP（URL → Markdown，Python sidecar） |
-| 测试 | Vitest + Zod |
+| 内容获取 | Microsoft MarkItDown（Python sidecar，HTTP 包装） |
+| Markdown 渲染 | marked（素材列表内渲染正文 + 图片） |
+| 测试 | Vitest（独立测试数据库 `dev.test.db`） |
 | 语言 | TypeScript |
 
 ## 数据库
