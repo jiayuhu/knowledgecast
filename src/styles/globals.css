@@ -1,11 +1,13 @@
 @import "tailwindcss";
 
 html {
-  color: #101010;
-  background: #f8f7f3;
+  color: #171717;
+  background: #fafafa;
 }
 
 body {
   margin: 0;
-  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }

@@ -4,7 +4,7 @@ import { listRecentTrainingPages } from "@/server/training/repository";
 
 const listTrainingPagesSchema = z.object({
   userId: z.string().min(1),
-  limit: z.coerce.number().int().positive().max(20).optional()
+  limit: z.coerce.number().int().positive().max(200).optional()
 });
 
 export async function GET(request: Request) {

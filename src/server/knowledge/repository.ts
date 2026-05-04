@@ -6,6 +6,7 @@ import { knowledgeItems } from "../db/schema";
 export type KnowledgeItemRecord = {
   id: string;
   userId: string;
+  workspaceId: string | null;
   sourceType: string;
   title: string | null;
   content: string;
@@ -16,6 +17,7 @@ export type KnowledgeItemRecord = {
 
 export async function createKnowledgeItem(input: {
   userId: string;
+  workspaceId?: string | null;
   sourceType: string;
   title?: string | null;
   content: string;
@@ -24,6 +26,7 @@ export async function createKnowledgeItem(input: {
   const record: KnowledgeItemRecord = {
     id: randomUUID(),
     userId: input.userId,
+    workspaceId: input.workspaceId ?? null,
     sourceType: input.sourceType,
     title: input.title ?? null,
     content: input.content,
@@ -35,6 +38,40 @@ export async function createKnowledgeItem(input: {
   const db = await getDb();
   await db.insert(knowledgeItems).values(record).run();
   return record;
+}
+
+export async function updateKnowledgeItem(
+  id: string,
+  userId: string,
+  input: { title?: string | null; content?: string }
+) {
+  const db = await getDb();
+  const now = new Date();
+  const values: Record<string, unknown> = { updatedAt: now };
+
+  if (input.title !== undefined) values.title = input.title;
+  if (input.content !== undefined) values.content = input.content;
+
+  await db
+    .update(knowledgeItems)
+    .set(values)
+    .where(and(eq(knowledgeItems.id, id), eq(knowledgeItems.userId, userId)))
+    .run();
+
+  const rows = await db
+    .select()
+    .from(knowledgeItems)
+    .where(and(eq(knowledgeItems.id, id), eq(knowledgeItems.userId, userId)))
+    .all();
+  return rows[0] ?? null;
+}
+
+export async function deleteKnowledgeItem(id: string, userId: string) {
+  const db = await getDb();
+  await db
+    .delete(knowledgeItems)
+    .where(and(eq(knowledgeItems.id, id), eq(knowledgeItems.userId, userId)))
+    .run();
 }
 
 export async function archiveKnowledgeItem(id: string, userId: string) {
@@ -64,6 +101,7 @@ export async function archiveKnowledgeItem(id: string, userId: string) {
   return {
     id: row.id,
     userId: row.userId,
+    workspaceId: row.workspaceId,
     sourceType: row.sourceType,
     title: row.title,
     content: row.content,
@@ -73,18 +111,37 @@ export async function archiveKnowledgeItem(id: string, userId: string) {
   };
 }
 
-export async function listKnowledgeItems(userId: string) {
+export async function listKnowledgeItems(
+  userId: string,
+  workspaceId?: string | null
+) {
   const db = await getDb();
-  const rows = await db.select().from(knowledgeItems).where(eq(knowledgeItems.userId, userId)).all();
-  return rows;
-}
-
-export async function listRecentKnowledgeItems(userId: string, limit = 5) {
-  const db = await getDb();
+  const conditions = [eq(knowledgeItems.userId, userId)];
+  if (workspaceId) {
+    conditions.push(eq(knowledgeItems.workspaceId, workspaceId));
+  }
   const rows = await db
     .select()
     .from(knowledgeItems)
-    .where(eq(knowledgeItems.userId, userId))
+    .where(and(...conditions))
+    .all();
+  return rows;
+}
+
+export async function listRecentKnowledgeItems(
+  userId: string,
+  limit = 5,
+  workspaceId?: string | null
+) {
+  const db = await getDb();
+  const conditions = [eq(knowledgeItems.userId, userId)];
+  if (workspaceId) {
+    conditions.push(eq(knowledgeItems.workspaceId, workspaceId));
+  }
+  const rows = await db
+    .select()
+    .from(knowledgeItems)
+    .where(and(...conditions))
     .orderBy(desc(knowledgeItems.createdAt))
     .limit(limit)
     .all();
@@ -92,6 +149,7 @@ export async function listRecentKnowledgeItems(userId: string, limit = 5) {
   return rows.map((row) => ({
     id: row.id,
     userId: row.userId,
+    workspaceId: row.workspaceId,
     sourceType: row.sourceType,
     title: row.title,
     content: row.content,

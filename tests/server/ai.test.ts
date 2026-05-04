@@ -14,6 +14,12 @@ describe("organizeKnowledge", () => {
           title: "KnowledgeCast Overview",
           outline: ["Why", "What", "How"],
           followUpQuestions: ["Who is the audience?"]
+        }),
+        generateSlides: async () => ({
+          title: "KnowledgeCast Overview",
+          framework: "problem-solving",
+          totalMinutes: 30,
+          slides: []
         })
       }
     );

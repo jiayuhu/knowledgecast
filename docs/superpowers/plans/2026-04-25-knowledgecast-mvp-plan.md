@@ -1,6 +1,6 @@
 # KnowledgeCast MVP Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **状态：历史文档。** 此计划对应 v0.1 MVP（单 dashboard 页面 + outline/content 输出模式）。当前架构已重构，参见 `docs/superpowers/specs/2026-04-25-knowledgecast-design.md`。
 
 **Goal:** Build the first shippable KnowledgeCast web MVP: users can capture fragmented knowledge, have it organized by AI, generate a private internal training page, and share it through an access-controlled link.
 

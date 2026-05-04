@@ -7,8 +7,12 @@ export type TrainingPageRecord = {
   id: string;
   userId: string;
   title: string;
-  outlineJson: string;
-  contentJson: string;
+  framework: string | null;
+  outlineJson: string | null;
+  contentJson: string | null;
+  slidesJson: string | null;
+  totalMinutes: number | null;
+  version: number | null;
   status: string;
   createdAt: Date;
   updatedAt: Date;
@@ -17,8 +21,11 @@ export type TrainingPageRecord = {
 export async function createTrainingPage(input: {
   userId: string;
   title: string;
-  outline: string[];
-  content: string[];
+  outline?: string[];
+  content?: string[];
+  slidesJson?: string;
+  framework?: string;
+  totalMinutes?: number;
   status?: string;
 }) {
   const now = new Date();
@@ -26,8 +33,12 @@ export async function createTrainingPage(input: {
     id: randomUUID(),
     userId: input.userId,
     title: input.title,
-    outlineJson: JSON.stringify(input.outline),
-    contentJson: JSON.stringify(input.content),
+    framework: input.framework ?? null,
+    outlineJson: input.outline ? JSON.stringify(input.outline) : null,
+    contentJson: input.content ? JSON.stringify(input.content) : null,
+    slidesJson: input.slidesJson ?? null,
+    totalMinutes: input.totalMinutes ?? null,
+    version: 1,
     status: input.status ?? "ready",
     createdAt: now,
     updatedAt: now
@@ -40,14 +51,14 @@ export async function createTrainingPage(input: {
 
 export async function updateTrainingPage(
   id: string,
-  input: Partial<Pick<TrainingPageRecord, "title" | "status">> & {
+  input: Partial<Pick<TrainingPageRecord, "title" | "status" | "framework" | "slidesJson" | "totalMinutes" | "version">> & {
     outline?: string[];
     content?: string[];
   }
 ) {
   const db = await getDb();
   const now = new Date();
-  const updateValues: Partial<TrainingPageRecord> = {
+  const updateValues: Record<string, unknown> = {
     updatedAt: now
   };
 
@@ -57,6 +68,22 @@ export async function updateTrainingPage(
 
   if (input.status !== undefined) {
     updateValues.status = input.status;
+  }
+
+  if (input.framework !== undefined) {
+    updateValues.framework = input.framework;
+  }
+
+  if (input.slidesJson !== undefined) {
+    updateValues.slidesJson = input.slidesJson;
+  }
+
+  if (input.totalMinutes !== undefined) {
+    updateValues.totalMinutes = input.totalMinutes;
+  }
+
+  if (input.version !== undefined) {
+    updateValues.version = input.version;
   }
 
   if (input.outline !== undefined) {
@@ -105,8 +132,12 @@ export async function listRecentTrainingPages(userId: string, limit = 5) {
       id: page.id,
       userId: page.userId,
       title: page.title,
-      outline: JSON.parse(page.outlineJson) as string[],
-      content: JSON.parse(page.contentJson) as string[],
+      framework: page.framework,
+      outline: JSON.parse(page.outlineJson ?? "[]") as string[],
+      content: JSON.parse(page.contentJson ?? "[]") as string[],
+      slidesJson: page.slidesJson,
+      totalMinutes: page.totalMinutes,
+      version: page.version,
       status: page.status,
       createdAt: page.createdAt,
       updatedAt: page.updatedAt,

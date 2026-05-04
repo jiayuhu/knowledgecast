@@ -38,6 +38,12 @@ describe("generateTrainingPage", () => {
         title: "KnowledgeCast Overview",
         outline: ["Why", "What", "How"],
         followUpQuestions: ["Who is the audience?"]
+      })),
+      generateSlides: vi.fn(async () => ({
+        title: "KnowledgeCast Overview",
+        framework: "problem-solving",
+        totalMinutes: 30,
+        slides: []
       }))
     };
 
@@ -73,6 +79,12 @@ describe("generateTrainingPage", () => {
         title: "KnowledgeCast Overview",
         outline: ["Why", "What", "How"],
         followUpQuestions: ["Who is the audience?"]
+      })),
+      generateSlides: vi.fn(async () => ({
+        title: "KnowledgeCast Overview",
+        framework: "problem-solving",
+        totalMinutes: 30,
+        slides: []
       }))
     };
 

@@ -5,14 +5,7 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ["ui-sans-serif", "system-ui", "sans-serif"]
-      },
-      colors: {
-        ink: {
-          50: "#f8f7f3",
-          100: "#efece4",
-          900: "#101010"
-        }
+        sans: ["ui-sans-serif", "system-ui", "-apple-system", "sans-serif"]
       }
     }
   },

@@ -1,14 +1,16 @@
 import { createClient } from "@libsql/client/node";
 import { drizzle } from "drizzle-orm/libsql/node";
+import { migrate } from "drizzle-orm/libsql/migrator";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
-import { SCHEMA_SQL } from "./schema";
 
 type Db = ReturnType<typeof drizzle>;
 
 let sqliteClient: ReturnType<typeof createClient> | null = null;
 let drizzleDb: ReturnType<typeof drizzle> | null = null;
 let initPromise: Promise<Db> | null = null;
+
+const MIGRATIONS_DIR = path.resolve(process.cwd(), "drizzle");
 
 function resolveDatabasePath(databaseUrl: string) {
   if (databaseUrl.startsWith("file:")) {
@@ -19,10 +21,11 @@ function resolveDatabasePath(databaseUrl: string) {
   return databaseUrl;
 }
 
-async function bootstrapSchema(client: ReturnType<typeof createClient>) {
-  for (const statement of SCHEMA_SQL) {
-    await client.execute(statement);
-  }
+async function runMigrations(client: ReturnType<typeof createClient>) {
+  const db = drizzle({ client });
+  await migrate(db, {
+    migrationsFolder: MIGRATIONS_DIR
+  });
 }
 
 export function getSqliteClient() {
@@ -39,7 +42,7 @@ export function getSqliteClient() {
 
 async function initializeDatabase() {
   const client = getSqliteClient();
-  await bootstrapSchema(client);
+  await runMigrations(client);
   return drizzle({ client });
 }
 

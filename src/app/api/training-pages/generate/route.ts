@@ -1,24 +1,28 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createAIProvider } from "@/server/ai/provider";
-import { generateTrainingPage } from "@/server/training/service";
+import { generateTrainingSlides } from "@/server/training/service";
 
-const generateTrainingPageSchema = z.object({
+const generateSlidesSchema = z.object({
   userId: z.string().min(1),
   knowledgeItemIds: z.array(z.string().min(1)).optional(),
-  shareExpiresAt: z.string().datetime().optional()
+  frameworkId: z.string().min(1),
+  topic: z.string().optional(),
+  instruction: z.string().optional(),
+  previousPageId: z.string().optional()
 });
 
 export async function POST(request: Request) {
-  const payload = generateTrainingPageSchema.parse(await request.json());
+  const payload = generateSlidesSchema.parse(await request.json());
   const provider = createAIProvider();
-  const result = await generateTrainingPage(
+  const result = await generateTrainingSlides(
     {
       userId: payload.userId,
       knowledgeItemIds: payload.knowledgeItemIds ?? [],
-      shareExpiresAt: payload.shareExpiresAt
-        ? new Date(payload.shareExpiresAt)
-        : undefined
+      frameworkId: payload.frameworkId,
+      topic: payload.topic,
+      instruction: payload.instruction,
+      previousPageId: payload.previousPageId
     },
     provider
   );

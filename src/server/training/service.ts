@@ -2,7 +2,8 @@ import { randomUUID } from "node:crypto";
 import { listKnowledgeItems } from "../knowledge/repository";
 import { createShareLink } from "../share/repository";
 import { organizeKnowledge } from "../ai/organize";
-import type { AIProvider } from "../ai/types";
+import type { AIProvider, TrainingContent } from "../ai/types";
+import { getFramework } from "./frameworks";
 import {
   createTrainingPage,
   updateTrainingPage
@@ -91,11 +92,132 @@ export async function generateTrainingPage(
       id: trainingPage.id,
       userId: trainingPage.userId,
       title: trainingPage.title,
-      outline: JSON.parse(trainingPage.outlineJson) as string[],
-      content: JSON.parse(trainingPage.contentJson) as string[],
+      outline: JSON.parse(trainingPage.outlineJson ?? "[]") as string[],
+      content: JSON.parse(trainingPage.contentJson ?? "[]") as string[],
       status: trainingPage.status,
       createdAt: trainingPage.createdAt,
       updatedAt: trainingPage.updatedAt
+    },
+    shareLink
+  };
+}
+
+export async function generateTrainingSlides(
+  input: {
+    userId: string;
+    knowledgeItemIds: string[];
+    frameworkId: string;
+    topic?: string;
+    instruction?: string;
+    previousPageId?: string;
+  },
+  provider: AIProvider
+) {
+  const knowledgeItems = await listKnowledgeItems(input.userId);
+  const selectedKnowledgeItems =
+    input.knowledgeItemIds.length > 0
+      ? knowledgeItems.filter((item) => input.knowledgeItemIds.includes(item.id))
+      : knowledgeItems;
+
+  if (selectedKnowledgeItems.length === 0) {
+    throw new Error("没有找到可用于生成的素材");
+  }
+
+  const framework = await getFramework(input.frameworkId);
+  if (!framework) {
+    throw new Error(`未知框架: ${input.frameworkId}`);
+  }
+
+  let previousSlides: TrainingContent | undefined;
+  let version = 1;
+
+  if (input.previousPageId) {
+    const { listRecentTrainingPages } = await import("./repository");
+    const pages = await listRecentTrainingPages(input.userId, 100);
+    const prev = pages.find((p) => p.id === input.previousPageId);
+    if (prev?.slidesJson) {
+      previousSlides = JSON.parse(prev.slidesJson);
+      version = (prev.version ?? 1) + 1;
+    }
+  }
+
+  const slides = await provider.generateSlides({
+    fragments: selectedKnowledgeItems.map((item) => ({
+      id: item.id,
+      content: item.content
+    })),
+    framework: {
+      id: framework.id,
+      name: framework.name,
+      structure: framework.structure
+    },
+    topic: input.topic,
+    instruction: input.instruction,
+    previousSlides
+  });
+
+  const slidesJson = JSON.stringify(slides);
+
+  if (input.previousPageId) {
+    const trainingPage = await updateTrainingPage(input.previousPageId, {
+      title: slides.title,
+      framework: input.frameworkId,
+      slidesJson,
+      totalMinutes: slides.totalMinutes,
+      version,
+      status: "ready"
+    });
+
+    const { listRecentTrainingPages } = await import("./repository");
+    const pages = await listRecentTrainingPages(input.userId, 100);
+    const updated = pages.find((p) => p.id === trainingPage.id);
+
+    const shareLink = updated?.shareLink ?? null;
+
+    return {
+      trainingPage: {
+        id: trainingPage.id,
+        userId: trainingPage.userId,
+        title: trainingPage.title,
+        framework: trainingPage.framework,
+        slidesJson: trainingPage.slidesJson,
+        totalMinutes: trainingPage.totalMinutes,
+        version: trainingPage.version,
+        status: trainingPage.status,
+        createdAt: trainingPage.createdAt,
+        updatedAt: trainingPage.updatedAt
+      },
+      shareLink
+    };
+  }
+
+  const draftPage = await createTrainingPage({
+    userId: input.userId,
+    title: slides.title,
+    framework: input.frameworkId,
+    slidesJson,
+    totalMinutes: slides.totalMinutes,
+    status: "ready"
+  });
+
+  const shareLink = await createShareLink({
+    trainingPageId: draftPage.id,
+    token: randomUUID(),
+    expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+  });
+
+  return {
+    trainingPage: {
+      id: draftPage.id,
+      userId: draftPage.userId,
+      title: draftPage.title,
+      framework: draftPage.framework,
+      slidesJson: draftPage.slidesJson,
+      totalMinutes: draftPage.totalMinutes,
+      version: draftPage.version,
+      status: draftPage.status,
+      createdAt: draftPage.createdAt,
+      updatedAt: draftPage.updatedAt
     },
     shareLink
   };

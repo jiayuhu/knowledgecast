@@ -3,7 +3,10 @@ import "../styles/globals.css";
 
 export const metadata: Metadata = {
   title: "KnowledgeCast",
-  description: "Turn fragmented knowledge into private training pages."
+  description: "把碎片知识快速整理成可讲、可发、可复用的培训网页",
+  icons: {
+    icon: "/icon.svg"
+  }
 };
 
 export default function RootLayout({
@@ -12,7 +15,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="zh-CN">
       <body>{children}</body>
     </html>
   );

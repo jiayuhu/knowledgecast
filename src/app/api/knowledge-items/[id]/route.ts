@@ -1,19 +1,49 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { archiveKnowledgeItem } from "@/server/knowledge/repository";
+import { archiveKnowledgeItem, deleteKnowledgeItem, updateKnowledgeItem } from "@/server/knowledge/repository";
 
-const archiveKnowledgeItemSchema = z.object({
+const updateKnowledgeItemSchema = z.object({
+  userId: z.string().min(1),
+  title: z.string().nullable().optional(),
+  content: z.string().min(1).optional()
+});
+
+const deleteSchema = z.object({
   userId: z.string().min(1)
 });
+
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+  const payload = deleteSchema.parse(await request.json());
+  await deleteKnowledgeItem(id, payload.userId);
+  return NextResponse.json({ success: true });
+}
 
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const payload = archiveKnowledgeItemSchema.parse(await request.json());
+  const payload = updateKnowledgeItemSchema.parse(await request.json());
 
-  const item = await archiveKnowledgeItem(id, payload.userId);
+  // 如果只有 userId，执行归档
+  if (payload.title === undefined && payload.content === undefined) {
+    const item = await archiveKnowledgeItem(id, payload.userId);
+    return NextResponse.json({ item });
+  }
+
+  // 更新标题或内容
+  const item = await updateKnowledgeItem(id, payload.userId, {
+    title: payload.title,
+    content: payload.content
+  });
+
+  if (!item) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
 
   return NextResponse.json({ item });
 }

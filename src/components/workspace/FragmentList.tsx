@@ -1,0 +1,259 @@
+"use client";
+
+import { useCallback, useEffect, useRef, useState } from "react";
+
+type Fragment = {
+  id: string;
+  sourceType: string;
+  title: string | null;
+  content: string;
+  status: string;
+  createdAt: string;
+};
+
+type Props = {
+  userId: string;
+  workspaceId: string;
+};
+
+export function FragmentList({ userId, workspaceId }: Props) {
+  const [fragments, setFragments] = useState<Fragment[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editField, setEditField] = useState<"title" | "content" | null>(null);
+  const [editValue, setEditValue] = useState("");
+  const [generatingId, setGeneratingId] = useState<string | null>(null);
+  const editInputRef = useRef<HTMLInputElement>(null);
+  const editTextareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const loadFragments = useCallback(async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const response = await fetch(
+        `/api/knowledge-items?userId=${encodeURIComponent(userId)}&workspaceId=${encodeURIComponent(workspaceId)}&limit=50`
+      );
+      if (!response.ok) throw new Error("加载失败");
+      const data = await response.json();
+      setFragments(data.knowledgeItems ?? []);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "加载失败");
+    } finally {
+      setLoading(false);
+    }
+  }, [userId, workspaceId]);
+
+  useEffect(() => {
+    loadFragments();
+  }, [loadFragments]);
+
+  useEffect(() => {
+    if (editingId && editField === "title") editInputRef.current?.focus();
+    if (editingId && editField === "content") editTextareaRef.current?.focus();
+  }, [editingId, editField]);
+
+  function startEdit(f: Fragment, field: "title" | "content") {
+    setEditingId(f.id);
+    setEditField(field);
+    setEditValue(field === "title" ? (f.title ?? "") : f.content);
+  }
+
+  function cancelEdit() {
+    setEditingId(null);
+    setEditField(null);
+    setEditValue("");
+  }
+
+  async function saveEdit(f: Fragment) {
+    if (!editField || editValue === (editField === "title" ? (f.title ?? "") : f.content)) {
+      cancelEdit();
+      return;
+    }
+
+    const body: Record<string, unknown> = { userId };
+    if (editField === "title") body.title = editValue.trim() || null;
+    else body.content = editValue.trim();
+
+    await fetch(`/api/knowledge-items/${f.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    });
+
+    setFragments((prev) =>
+      prev.map((item) => {
+        if (item.id !== f.id) return item;
+        if (editField === "title") return { ...item, title: editValue.trim() || null };
+        return { ...item, content: editValue.trim() };
+      })
+    );
+
+    cancelEdit();
+  }
+
+  if (loading) {
+    return (
+      <div className="mt-8 rounded-xl border border-gray-200 bg-white p-6 text-sm text-gray-400">
+        加载中...
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="mt-8 rounded-xl border border-red-200 bg-red-50 p-6 text-center">
+        <p className="text-sm text-red-600">{error}</p>
+        <button onClick={loadFragments} className="mt-2 text-xs text-red-500 hover:text-red-700 underline">
+          点击重试
+        </button>
+      </div>
+    );
+  }
+
+  if (fragments.length === 0) {
+    return (
+      <div className="mt-8 rounded-xl border border-dashed border-gray-300 bg-white p-12 text-center">
+        <div className="text-3xl mb-3">📝</div>
+        <p className="text-sm text-gray-500">还没有素材</p>
+        <p className="mt-1 text-xs text-gray-400">
+          在上方输入框粘贴文字、链接或 Markdown，Ctrl+Enter 快速提交
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-8">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-sm font-medium uppercase tracking-wide text-gray-500">
+          素材库 ({fragments.length})
+        </h2>
+        <button
+          onClick={loadFragments}
+          className="text-xs font-medium text-gray-500 hover:text-gray-700"
+        >
+          刷新
+        </button>
+      </div>
+      <div className="space-y-2">
+        {fragments.map((f) => {
+          const isEditing = editingId === f.id;
+          return (
+            <div
+              key={f.id}
+              className="group rounded-lg border border-gray-200 bg-white p-4 transition hover:border-gray-300"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  {isEditing && editField === "title" ? (
+                    <input
+                      ref={editInputRef}
+                      value={editValue}
+                      onChange={(e) => setEditValue(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") saveEdit(f);
+                        if (e.key === "Escape") cancelEdit();
+                      }}
+                      onBlur={() => saveEdit(f)}
+                      className="w-full rounded border border-blue-300 bg-white px-2 py-1 text-sm font-medium text-gray-900 outline-none focus:ring-1 focus:ring-blue-200"
+                    />
+                  ) : (
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => startEdit(f, "title")}
+                        className="text-left text-sm font-medium text-gray-900 hover:text-blue-600 cursor-text"
+                        title="点击编辑标题"
+                      >
+                        {f.title ?? "未命名素材"}
+                      </button>
+                      <button
+                        onClick={async () => {
+                          if (generatingId) return;
+                          setGeneratingId(f.id);
+                          try {
+                            const res = await fetch("/api/knowledge-items/generate-title", {
+                              method: "POST",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ content: f.content })
+                            });
+                            if (res.ok) {
+                              const data = await res.json();
+                              await fetch(`/api/knowledge-items/${f.id}`, {
+                                method: "PATCH",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ userId, title: data.title })
+                              });
+                              setFragments((prev) =>
+                                prev.map((item) =>
+                                  item.id === f.id ? { ...item, title: data.title } : item
+                                )
+                              );
+                            }
+                          } catch { /* 静默 */ }
+                          setGeneratingId(null);
+                        }}
+                        disabled={generatingId === f.id}
+                        className={`hidden group-hover:inline-flex shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium transition ${
+                          generatingId === f.id
+                            ? "text-gray-300 cursor-not-allowed"
+                            : "text-blue-500 hover:bg-blue-50"
+                        }`}
+                        title="AI 生成标题"
+                      >
+                        {generatingId === f.id ? "..." : "AI"}
+                      </button>
+                    </div>
+                  )}
+
+                  {isEditing && editField === "content" ? (
+                    <textarea
+                      ref={editTextareaRef}
+                      value={editValue}
+                      onChange={(e) => setEditValue(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Escape") cancelEdit();
+                      }}
+                      onBlur={() => saveEdit(f)}
+                      rows={3}
+                      className="mt-1 w-full rounded border border-blue-300 bg-white px-2 py-1 text-xs text-gray-700 outline-none focus:ring-1 focus:ring-blue-200 resize-none"
+                    />
+                  ) : (
+                    <button
+                      onClick={() => startEdit(f, "content")}
+                      className="mt-1 block w-full text-left text-xs text-gray-500 line-clamp-2 hover:text-blue-600 cursor-text"
+                      title="点击编辑内容"
+                    >
+                      {f.content}
+                    </button>
+                  )}
+                </div>
+                <div className="flex items-center gap-1 shrink-0">
+                  <button
+                    onClick={async () => {
+                      await fetch(`/api/knowledge-items/${f.id}`, {
+                        method: "DELETE",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ userId })
+                      });
+                      setFragments((prev) => prev.filter((item) => item.id !== f.id));
+                    }}
+                    className="hidden group-hover:block rounded p-1 text-gray-400 hover:bg-red-50 hover:text-red-600"
+                    title="删除"
+                  >
+                    <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
+                  <span className="rounded-md bg-gray-100 px-2 py-1 text-xs text-gray-500">
+                    {f.sourceType}
+                  </span>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}

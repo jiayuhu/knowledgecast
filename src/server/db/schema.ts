@@ -1,8 +1,29 @@
 import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
+export const areas = sqliteTable("areas", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull(),
+  name: text("name").notNull(),
+  sortOrder: integer("sort_order").default(0),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull()
+});
+
+export const workspaces = sqliteTable("workspaces", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull(),
+  areaId: text("area_id"),
+  name: text("name").notNull(),
+  topic: text("topic"),
+  sortOrder: integer("sort_order").default(0),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull()
+});
+
 export const knowledgeItems = sqliteTable("knowledge_items", {
   id: text("id").primaryKey(),
   userId: text("user_id").notNull(),
+  workspaceId: text("workspace_id"),
   sourceType: text("source_type").notNull(),
   title: text("title"),
   content: text("content").notNull(),
@@ -15,8 +36,12 @@ export const trainingPages = sqliteTable("training_pages", {
   id: text("id").primaryKey(),
   userId: text("user_id").notNull(),
   title: text("title").notNull(),
-  outlineJson: text("outline_json").notNull(),
-  contentJson: text("content_json").notNull(),
+  framework: text("framework"),
+  outlineJson: text("outline_json"),
+  contentJson: text("content_json"),
+  slidesJson: text("slides_json"),
+  totalMinutes: integer("total_minutes"),
+  version: integer("version").default(1),
   status: text("status").notNull().default("ready"),
   createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
   updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull()
@@ -49,49 +74,24 @@ export const auditLogs = sqliteTable("audit_logs", {
   createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull()
 });
 
-export const SCHEMA_SQL = [
-  `CREATE TABLE IF NOT EXISTS knowledge_items (
-    id TEXT PRIMARY KEY NOT NULL,
-    user_id TEXT NOT NULL,
-    source_type TEXT NOT NULL,
-    title TEXT,
-    content TEXT NOT NULL,
-    status TEXT NOT NULL DEFAULT 'draft',
-    created_at INTEGER NOT NULL,
-    updated_at INTEGER NOT NULL
-  )`,
-  `CREATE TABLE IF NOT EXISTS training_pages (
-    id TEXT PRIMARY KEY NOT NULL,
-    user_id TEXT NOT NULL,
-    title TEXT NOT NULL,
-    outline_json TEXT NOT NULL,
-    content_json TEXT NOT NULL,
-    status TEXT NOT NULL DEFAULT 'ready',
-    created_at INTEGER NOT NULL,
-    updated_at INTEGER NOT NULL
-  )`,
-  `CREATE TABLE IF NOT EXISTS share_links (
-    id TEXT PRIMARY KEY NOT NULL,
-    training_page_id TEXT NOT NULL,
-    token TEXT NOT NULL UNIQUE,
-    status TEXT NOT NULL DEFAULT 'active',
-    expires_at INTEGER NOT NULL,
-    created_at INTEGER NOT NULL,
-    updated_at INTEGER NOT NULL
-  )`,
-  `CREATE TABLE IF NOT EXISTS access_tokens (
-    id TEXT PRIMARY KEY NOT NULL,
-    share_link_id TEXT NOT NULL,
-    email TEXT NOT NULL,
-    token TEXT NOT NULL UNIQUE,
-    expires_at INTEGER NOT NULL,
-    created_at INTEGER NOT NULL
-  )`,
-  `CREATE TABLE IF NOT EXISTS audit_logs (
-    id TEXT PRIMARY KEY NOT NULL,
-    actor_email TEXT,
-    event_type TEXT NOT NULL,
-    payload_json TEXT NOT NULL,
-    created_at INTEGER NOT NULL
-  )`
-];
+export const userFrameworks = sqliteTable("user_frameworks", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull(),
+  name: text("name").notNull(),
+  structureJson: text("structure_json").notNull(),
+  description: text("description"),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull()
+});
+
+export const iterationHistory = sqliteTable("iteration_history", {
+  id: text("id").primaryKey(),
+  trainingPageId: text("training_page_id").notNull(),
+  version: integer("version").notNull(),
+  instruction: text("instruction").notNull(),
+  slidesJson: text("slides_json").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull()
+});
+// 数据库 schema 由 Drizzle ORM migration 系统管理。
+// 运行 `npx drizzle-kit generate` 生成 migration。
+// 运行 `npx drizzle-kit migrate` 或启动服务自动执行。
