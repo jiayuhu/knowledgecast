@@ -93,3 +93,39 @@
 - 提示词优化可在 AI 生成时自动处理：在 prompt 中要求 AI 标注素材覆盖不足的环节
 
 **实现路径**: AI 生成幻灯片时，在 speakerNotes 中标明「此环节素材不足，建议补充：XX」。结构页在生成结果顶部加提醒条展示这些建议。
+
+---
+
+## ADR-007: URL 素材正文获取方案选择
+
+**日期**: 2026-05-04
+
+**决策**: 使用 Microsoft MarkItDown MCP 服务作为 URL → Markdown 转换引擎，通过 HTTP JSON-RPC 协议集成到 Next.js API 路由中。图片下载后本地化存储，MD5 哈希去重。
+
+**理由**:
+- MarkItDown 是微软开源工具（MIT 协议），社区活跃（108K+ stars），覆盖面广——不止网页 HTML，还包括 PDF、Word、PPT 等格式
+- MCP HTTP sidecar 架构将 Python 运行时与 Node.js 解耦，部署灵活
+- HTML 提取质量优于原生 Readability 方案（MarkItDown 内置 LLM 增强的图像描述）
+- 图片内容哈希去重：同一图片出现在多个素材中只存一份
+
+**权衡**:
+- 引入 Python 运行时依赖，增加部署复杂度。开发环境通过 `npx markitdown-mcp-npx` 自动管理，生产需 Docker sidecar
+- URL 获取有网络延迟（5-30 秒），在 API 请求中同步执行会增加响应时间。当前 MVP 阶段可接受；后续大文件可改为异步队列
+- MarkItDown 不可达时降级为存储 URL 原文，不丢数据但体验降级
+
+**实现**: `src/server/ingest/markitdown-client.ts` MCP 客户端 + `src/server/ingest/image-handler.ts` 图片处理器 + `src/server/storage/adapter.ts` 可插拔存储适配器。PostgreSQL/S3 等生产存储方案通过实现 `StorageAdapter` 接口切换。
+
+---
+
+## ADR-008: 图片素材本地化存储
+
+**日期**: 2026-05-04
+
+**决策**: MarkItDown 转换后的 Markdown 中引用的远程图片自动下载到本地 `public/storage/`，URL 重写为本地路径。存储层通过 `StorageAdapter` 接口抽象。
+
+**理由**:
+- 远程图片可能失效、被防盗链限制、或被源站删除，本地化避免培训材料损坏
+- MD5 哈希文件名天然实现去重——多篇素材引用同一图片只存一份
+- `StorageAdapter` 接口让开发环境用文件系统、生产环境可切换 S3/R2 等对象存储
+
+**权衡**: 本地化存储占用磁盘空间。培训类图片通常较小（截图、示意图），MVP 阶段可忽略。后续可加图片大小上限和超时配置。

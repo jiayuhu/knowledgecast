@@ -94,6 +94,23 @@ Base: `/api`
 
 ## 知识碎片
 
+**KnowledgeItem 类型**:
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| id | string | UUID |
+| userId | string | 所属用户 |
+| workspaceId | string \| null | 所属工作集 |
+| sourceType | string | `text` / `url` / `markdown` / `voice` |
+| title | string \| null | AI 生成或手动设置的标题 |
+| content | string | 正文内容 |
+| originalUrl | string \| null | 当 sourceType 为 `url` 时的原始链接 |
+| status | string | `draft` / `active` / `archived` |
+| createdAt | number | 创建时间戳 ms |
+| updatedAt | number | 更新时间戳 ms |
+
+> **关于 URL 素材**: 当 `sourceType` 为 `url` 时，系统通过 MarkItDown 自动获取目标页面的正文并转为 Markdown 存入 `content`，原始链接保存在 `originalUrl`。页面中的图片会下载到本地 `public/storage/` 并在 Markdown 中重写为本地路径。如果 MarkItDown 服务不可达，则降级为将 URL 字符串直接存入 `content`。
+
 ### `GET /api/knowledge-items`
 
 列出碎片。
@@ -116,7 +133,9 @@ Base: `/api`
 | workspaceId | body | 否 | |
 | sourceType | body | 是 | `text` / `url` / `markdown` / `voice` |
 | title | body | 否 | |
-| content | body | 是 | |
+| content | body | 是 | URL 素材传入链接地址 |
+
+**行为**: `url` 类型会同步获取页面正文（耗时 3-30 秒），其他类型直接存储。
 
 **返回** `{ item: KnowledgeItem }`
 
