@@ -2,12 +2,17 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createAIProvider } from "@/server/ai/provider";
 
+const TITLE_GEN_MAX_CHARS = 3000;
+
 const generateTitleSchema = z.object({
-  content: z.string().min(1).max(5000)
+  content: z.string().min(1)
 });
 
 export async function POST(request: Request) {
-  const payload = generateTitleSchema.parse(await request.json());
+  const raw = await request.json();
+  // 标题生成只需文章开头即可，截断省 token
+  const content = String(raw.content ?? "").slice(0, TITLE_GEN_MAX_CHARS);
+  const payload = generateTitleSchema.parse({ content });
   const provider = createAIProvider();
 
   const result = await provider.generate({
