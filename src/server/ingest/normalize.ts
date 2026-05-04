@@ -62,6 +62,13 @@ export function normalizeKnowledgeInput(input: {
   };
 }
 
+/** 从文本中提取所有 HTTP(S) URL，去重 */
+export function extractUrls(text: string): string[] {
+  const matches = text.match(/https?:\/\/[^\s)>"']+/g);
+  if (!matches) return [];
+  return [...new Set(matches)];
+}
+
 export async function enrichUrlContent(
   normalized: NormalizedKnowledgeInput,
   deps: IngestDeps

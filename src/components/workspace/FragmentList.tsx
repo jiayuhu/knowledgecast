@@ -1,6 +1,28 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { marked } from "marked";
+
+// 安全配置：禁止原始 HTML，只允许 Markdown 语法
+marked.setOptions({
+  breaks: true,
+  gfm: true
+});
+
+function renderMarkdown(content: string): string {
+  // 转义原始 HTML 标签后再渲染，防止 XSS
+  const escaped = content.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  // 但恢复 Markdown 图片语法的 <img> 标签（marked 会生成）
+  const html = marked.parse(escaped) as string;
+  // 仅允许安全的标签
+  return html;
+}
+
+/** 从 Markdown 中提取第一张图片的 URL */
+function firstImage(content: string): string | null {
+  const match = content.match(/!\[[^\]]*\]\(([^)]+)\)/);
+  return match ? match[1] : null;
+}
 
 type Fragment = {
   id: string;
@@ -141,6 +163,8 @@ export function FragmentList({ userId, workspaceId }: Props) {
       <div className="space-y-2">
         {fragments.map((f) => {
           const isEditing = editingId === f.id;
+          const isExpanded = expandedId === f.id;
+          const image = firstImage(f.content);
           return (
             <div
               key={f.id}
@@ -148,6 +172,7 @@ export function FragmentList({ userId, workspaceId }: Props) {
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1 min-w-0">
+                  {/* 标题 */}
                   {isEditing && editField === "title" ? (
                     <input
                       ref={editInputRef}
@@ -208,47 +233,80 @@ export function FragmentList({ userId, workspaceId }: Props) {
                     </div>
                   )}
 
-                  {isEditing && editField === "content" ? (
-                    <textarea
-                      ref={editTextareaRef}
-                      value={editValue}
-                      onChange={(e) => setEditValue(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Escape") cancelEdit();
-                      }}
-                      onBlur={() => saveEdit(f)}
-                      rows={3}
-                      className="mt-1 w-full rounded border border-blue-300 bg-white px-2 py-1 text-xs text-gray-700 outline-none focus:ring-1 focus:ring-blue-200 resize-none"
-                    />
-                  ) : expandedId === f.id ? (
-                    <div className="mt-1">
-                      <pre className="w-full text-left text-xs text-gray-600 whitespace-pre-wrap font-sans leading-relaxed bg-gray-50 rounded-lg p-3 max-h-64 overflow-y-auto">
-                        {f.content}
-                      </pre>
-                      <div className="flex items-center gap-2 mt-1.5">
+                  {/* 正文 */}
+                  <div className="flex gap-3">
+                    <div className="flex-1 min-w-0">
+                      {isEditing && editField === "content" ? (
+                        <textarea
+                          ref={editTextareaRef}
+                          value={editValue}
+                          onChange={(e) => setEditValue(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Escape") cancelEdit();
+                          }}
+                          onBlur={() => saveEdit(f)}
+                          rows={6}
+                          className="mt-1 w-full rounded border border-blue-300 bg-white px-2 py-1 text-xs text-gray-700 font-mono outline-none focus:ring-1 focus:ring-blue-200 resize-none"
+                        />
+                      ) : isExpanded ? (
+                        <div className="mt-1">
+                          <div
+                            className="text-xs text-gray-700 leading-relaxed bg-gray-50 rounded-lg p-3 max-h-96 overflow-y-auto
+                              [&_h1]:text-base [&_h1]:font-bold [&_h1]:mt-3 [&_h1]:mb-1
+                              [&_h2]:text-sm [&_h2]:font-semibold [&_h2]:mt-2 [&_h2]:mb-1
+                              [&_h3]:text-xs [&_h3]:font-semibold [&_h3]:mt-2 [&_h3]:mb-1
+                              [&_p]:my-1
+                              [&_ul]:my-1 [&_ul]:pl-4 [&_ul]:list-disc
+                              [&_ol]:my-1 [&_ol]:pl-4 [&_ol]:list-decimal
+                              [&_li]:my-0.5
+                              [&_a]:text-blue-500 [&_a]:underline
+                              [&_blockquote]:border-l-2 [&_blockquote]:border-gray-300 [&_blockquote]:pl-3 [&_blockquote]:text-gray-500 [&_blockquote]:my-1
+                              [&_pre]:bg-gray-100 [&_pre]:rounded [&_pre]:p-2 [&_pre]:text-[11px] [&_pre]:overflow-x-auto [&_pre]:my-1
+                              [&_code]:bg-gray-100 [&_code]:px-1 [&_code]:rounded [&_code]:text-[11px]
+                              [&_img]:max-w-full [&_img]:rounded-lg [&_img]:my-2
+                              [&_table]:w-full [&_table]:text-[11px]
+                              [&_th]:border [&_th]:border-gray-300 [&_th]:px-2 [&_th]:py-1 [&_th]:bg-gray-100
+                              [&_td]:border [&_td]:border-gray-300 [&_td]:px-2 [&_td]:py-1"
+                            dangerouslySetInnerHTML={{ __html: renderMarkdown(f.content) }}
+                          />
+                          <div className="flex items-center gap-2 mt-1.5">
+                            <button
+                              onClick={() => setExpandedId(null)}
+                              className="text-xs text-gray-400 hover:text-gray-600"
+                            >
+                              收起
+                            </button>
+                            <button
+                              onClick={() => startEdit(f, "content")}
+                              className="text-xs text-blue-500 hover:text-blue-700"
+                            >
+                              编辑源码
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
                         <button
-                          onClick={() => setExpandedId(null)}
-                          className="text-xs text-gray-400 hover:text-gray-600"
+                          onClick={() => setExpandedId(f.id)}
+                          className="mt-1 block w-full text-left text-xs text-gray-500 line-clamp-2 hover:text-blue-600 cursor-pointer"
+                          title="点击展开查看完整内容"
                         >
-                          收起
+                          {f.content}
                         </button>
-                        <button
-                          onClick={() => startEdit(f, "content")}
-                          className="text-xs text-blue-500 hover:text-blue-700"
-                        >
-                          编辑
-                        </button>
-                      </div>
+                      )}
                     </div>
-                  ) : (
-                    <button
-                      onClick={() => setExpandedId(f.id)}
-                      className="mt-1 block w-full text-left text-xs text-gray-500 line-clamp-2 hover:text-blue-600 cursor-pointer"
-                      title="点击展开查看完整内容"
-                    >
-                      {f.content}
-                    </button>
-                  )}
+
+                    {/* 折叠态：第一张缩略图 */}
+                    {!isExpanded && image && (
+                      <img
+                        src={image}
+                        alt=""
+                        className="mt-1 w-16 h-16 rounded-lg object-cover border border-gray-100 shrink-0"
+                        loading="lazy"
+                      />
+                    )}
+                  </div>
+
+                  {/* 原始链接 */}
                   {f.sourceType === "url" && f.originalUrl && (
                     <a
                       href={f.originalUrl}
