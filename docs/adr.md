@@ -100,20 +100,22 @@
 
 **日期**: 2026-05-04
 
-**决策**: 使用 Microsoft MarkItDown MCP 服务作为 URL → Markdown 转换引擎，通过 HTTP JSON-RPC 协议集成到 Next.js API 路由中。图片下载后本地化存储，MD5 哈希去重。
+**决策**: 使用 Microsoft MarkItDown 作为 URL → Markdown 转换引擎。经 `scripts/markitdown-server.py`（轻量 HTTP 包装器）集成到 Next.js API 路由中。图片下载后本地化存储，MD5 哈希去重。
 
 **理由**:
 - MarkItDown 是微软开源工具（MIT 协议），社区活跃（108K+ stars），覆盖面广——不止网页 HTML，还包括 PDF、Word、PPT 等格式
-- MCP HTTP sidecar 架构将 Python 运行时与 Node.js 解耦，部署灵活
-- HTML 提取质量优于原生 Readability 方案（MarkItDown 内置 LLM 增强的图像描述）
+- 直接使用系统 Python 环境安装 markitdown，轻量 HTTP 包装器（50 行）替代笨重的 MCP 协议
+- Python 运行时与 Node.js 通过 HTTP 解耦，部署灵活
+- HTML 提取质量优于原生 Readability 方案
 - 图片内容哈希去重：同一图片出现在多个素材中只存一份
 
 **权衡**:
-- 引入 Python 运行时依赖，增加部署复杂度。开发环境通过 `npx markitdown-mcp-npx` 自动管理，生产需 Docker sidecar
+- 引入 Python 运行时依赖。开发环境通过 `pip install markitdown` 安装到系统 Python；生产需在容器中预装
 - URL 获取有网络延迟（5-30 秒），在 API 请求中同步执行会增加响应时间。当前 MVP 阶段可接受；后续大文件可改为异步队列
 - MarkItDown 不可达时降级为存储 URL 原文，不丢数据但体验降级
+- 最初尝试 npx markitdown-mcp-npx 方案，但在 Windows + Python 3.14 上遇到 onnxruntime 兼容性问题。改为直接使用系统 Python + 自写 HTTP 包装器解决
 
-**实现**: `src/server/ingest/markitdown-client.ts` MCP 客户端 + `src/server/ingest/image-handler.ts` 图片处理器 + `src/server/storage/adapter.ts` 可插拔存储适配器。PostgreSQL/S3 等生产存储方案通过实现 `StorageAdapter` 接口切换。
+**实现**: `scripts/markitdown-server.py` HTTP 包装器 + `src/server/ingest/markitdown-client.ts` REST 客户端 + `src/server/ingest/image-handler.ts` 图片处理器 + `src/server/storage/adapter.ts` 可插拔存储适配器。生产存储方案通过实现 `StorageAdapter` 接口切换。
 
 ---
 
