@@ -3,25 +3,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { marked } from "marked";
 
-// 安全配置：禁止原始 HTML，只允许 Markdown 语法
-marked.setOptions({
-  breaks: true,
-  gfm: true
-});
+marked.setOptions({ breaks: true, gfm: true });
 
 function renderMarkdown(content: string): string {
-  // 转义原始 HTML 标签后再渲染，防止 XSS
   const escaped = content.replace(/</g, "&lt;").replace(/>/g, "&gt;");
-  // 但恢复 Markdown 图片语法的 <img> 标签（marked 会生成）
-  const html = marked.parse(escaped) as string;
-  // 仅允许安全的标签
-  return html;
-}
-
-/** 从 Markdown 中提取第一张图片的 URL */
-function firstImage(content: string): string | null {
-  const match = content.match(/!\[[^\]]*\]\(([^)]+)\)/);
-  return match ? match[1] : null;
+  return marked.parse(escaped) as string;
 }
 
 type Fragment = {
@@ -47,7 +33,6 @@ export function FragmentList({ userId, workspaceId }: Props) {
   const [editField, setEditField] = useState<"title" | "content" | null>(null);
   const [editValue, setEditValue] = useState("");
   const [generatingId, setGeneratingId] = useState<string | null>(null);
-  const [expandedId, setExpandedId] = useState<string | null>(null);
   const editInputRef = useRef<HTMLInputElement>(null);
   const editTextareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -68,9 +53,7 @@ export function FragmentList({ userId, workspaceId }: Props) {
     }
   }, [userId, workspaceId]);
 
-  useEffect(() => {
-    loadFragments();
-  }, [loadFragments]);
+  useEffect(() => { loadFragments(); }, [loadFragments]);
 
   useEffect(() => {
     if (editingId && editField === "title") editInputRef.current?.focus();
@@ -94,7 +77,6 @@ export function FragmentList({ userId, workspaceId }: Props) {
       cancelEdit();
       return;
     }
-
     const body: Record<string, unknown> = { userId };
     if (editField === "title") body.title = editValue.trim() || null;
     else body.content = editValue.trim();
@@ -104,7 +86,6 @@ export function FragmentList({ userId, workspaceId }: Props) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body)
     });
-
     setFragments((prev) =>
       prev.map((item) => {
         if (item.id !== f.id) return item;
@@ -112,25 +93,18 @@ export function FragmentList({ userId, workspaceId }: Props) {
         return { ...item, content: editValue.trim() };
       })
     );
-
     cancelEdit();
   }
 
   if (loading) {
-    return (
-      <div className="mt-8 rounded-xl border border-gray-200 bg-white p-6 text-sm text-gray-400">
-        加载中...
-      </div>
-    );
+    return <div className="mt-8 rounded-xl border border-gray-200 bg-white p-6 text-sm text-gray-400">加载中...</div>;
   }
 
   if (error) {
     return (
       <div className="mt-8 rounded-xl border border-red-200 bg-red-50 p-6 text-center">
         <p className="text-sm text-red-600">{error}</p>
-        <button onClick={loadFragments} className="mt-2 text-xs text-red-500 hover:text-red-700 underline">
-          点击重试
-        </button>
+        <button onClick={loadFragments} className="mt-2 text-xs text-red-500 hover:text-red-700 underline">点击重试</button>
       </div>
     );
   }
@@ -140,9 +114,7 @@ export function FragmentList({ userId, workspaceId }: Props) {
       <div className="mt-8 rounded-xl border border-dashed border-gray-300 bg-white p-12 text-center">
         <div className="text-3xl mb-3">📝</div>
         <p className="text-sm text-gray-500">还没有素材</p>
-        <p className="mt-1 text-xs text-gray-400">
-          在上方输入框粘贴文字、链接或 Markdown，Ctrl+Enter 快速提交
-        </p>
+        <p className="mt-1 text-xs text-gray-400">在上方输入框粘贴文字、链接或 Markdown，Ctrl+Enter 快速提交</p>
       </div>
     );
   }
@@ -150,38 +122,23 @@ export function FragmentList({ userId, workspaceId }: Props) {
   return (
     <div className="mt-8">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-sm font-medium uppercase tracking-wide text-gray-500">
-          素材库 ({fragments.length})
-        </h2>
-        <button
-          onClick={loadFragments}
-          className="text-xs font-medium text-gray-500 hover:text-gray-700"
-        >
-          刷新
-        </button>
+        <h2 className="text-sm font-medium uppercase tracking-wide text-gray-500">素材库 ({fragments.length})</h2>
+        <button onClick={loadFragments} className="text-xs font-medium text-gray-500 hover:text-gray-700">刷新</button>
       </div>
       <div className="space-y-2">
         {fragments.map((f) => {
-          const isEditing = editingId === f.id;
-          const isExpanded = expandedId === f.id;
-          const image = firstImage(f.content);
+          const isEditingContent = editingId === f.id && editField === "content";
           return (
-            <div
-              key={f.id}
-              className="group rounded-lg border border-gray-200 bg-white p-4 transition hover:border-gray-300"
-            >
+            <div key={f.id} className="group rounded-lg border border-gray-200 bg-white p-4 transition hover:border-gray-300">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1 min-w-0">
                   {/* 标题 */}
-                  {isEditing && editField === "title" ? (
+                  {editingId === f.id && editField === "title" ? (
                     <input
                       ref={editInputRef}
                       value={editValue}
                       onChange={(e) => setEditValue(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") saveEdit(f);
-                        if (e.key === "Escape") cancelEdit();
-                      }}
+                      onKeyDown={(e) => { if (e.key === "Enter") saveEdit(f); if (e.key === "Escape") cancelEdit(); }}
                       onBlur={() => saveEdit(f)}
                       className="w-full rounded border border-blue-300 bg-white px-2 py-1 text-sm font-medium text-gray-900 outline-none focus:ring-1 focus:ring-blue-200"
                     />
@@ -212,20 +169,14 @@ export function FragmentList({ userId, workspaceId }: Props) {
                                 body: JSON.stringify({ userId, title: data.title })
                               });
                               setFragments((prev) =>
-                                prev.map((item) =>
-                                  item.id === f.id ? { ...item, title: data.title } : item
-                                )
+                                prev.map((item) => item.id === f.id ? { ...item, title: data.title } : item)
                               );
                             }
-                          } catch { /* 静默 */ }
+                          } catch { /* ignore */ }
                           setGeneratingId(null);
                         }}
                         disabled={generatingId === f.id}
-                        className={`hidden group-hover:inline-flex shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium transition ${
-                          generatingId === f.id
-                            ? "text-gray-300 cursor-not-allowed"
-                            : "text-blue-500 hover:bg-blue-50"
-                        }`}
+                        className={`hidden group-hover:inline-flex shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium transition ${generatingId === f.id ? "text-gray-300 cursor-not-allowed" : "text-blue-500 hover:bg-blue-50"}`}
                         title="AI 生成标题"
                       >
                         {generatingId === f.id ? "..." : "AI"}
@@ -234,77 +185,51 @@ export function FragmentList({ userId, workspaceId }: Props) {
                   )}
 
                   {/* 正文 */}
-                  <div className="flex gap-3">
-                    <div className="flex-1 min-w-0">
-                      {isEditing && editField === "content" ? (
-                        <textarea
-                          ref={editTextareaRef}
-                          value={editValue}
-                          onChange={(e) => setEditValue(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Escape") cancelEdit();
-                          }}
-                          onBlur={() => saveEdit(f)}
-                          rows={6}
-                          className="mt-1 w-full rounded border border-blue-300 bg-white px-2 py-1 text-xs text-gray-700 font-mono outline-none focus:ring-1 focus:ring-blue-200 resize-none"
-                        />
-                      ) : isExpanded ? (
-                        <div className="mt-1">
-                          <div
-                            className="text-xs text-gray-700 leading-relaxed bg-gray-50 rounded-lg p-3 max-h-96 overflow-y-auto
-                              [&_h1]:text-base [&_h1]:font-bold [&_h1]:mt-3 [&_h1]:mb-1
-                              [&_h2]:text-sm [&_h2]:font-semibold [&_h2]:mt-2 [&_h2]:mb-1
-                              [&_h3]:text-xs [&_h3]:font-semibold [&_h3]:mt-2 [&_h3]:mb-1
-                              [&_p]:my-1
-                              [&_ul]:my-1 [&_ul]:pl-4 [&_ul]:list-disc
-                              [&_ol]:my-1 [&_ol]:pl-4 [&_ol]:list-decimal
-                              [&_li]:my-0.5
-                              [&_a]:text-blue-500 [&_a]:underline
-                              [&_blockquote]:border-l-2 [&_blockquote]:border-gray-300 [&_blockquote]:pl-3 [&_blockquote]:text-gray-500 [&_blockquote]:my-1
-                              [&_pre]:bg-gray-100 [&_pre]:rounded [&_pre]:p-2 [&_pre]:text-[11px] [&_pre]:overflow-x-auto [&_pre]:my-1
-                              [&_code]:bg-gray-100 [&_code]:px-1 [&_code]:rounded [&_code]:text-[11px]
-                              [&_img]:max-w-full [&_img]:rounded-lg [&_img]:my-2
-                              [&_table]:w-full [&_table]:text-[11px]
-                              [&_th]:border [&_th]:border-gray-300 [&_th]:px-2 [&_th]:py-1 [&_th]:bg-gray-100
-                              [&_td]:border [&_td]:border-gray-300 [&_td]:px-2 [&_td]:py-1"
-                            dangerouslySetInnerHTML={{ __html: renderMarkdown(f.content) }}
-                          />
-                          <div className="flex items-center gap-2 mt-1.5">
-                            <button
-                              onClick={() => setExpandedId(null)}
-                              className="text-xs text-gray-400 hover:text-gray-600"
-                            >
-                              收起
-                            </button>
-                            <button
-                              onClick={() => startEdit(f, "content")}
-                              className="text-xs text-blue-500 hover:text-blue-700"
-                            >
-                              编辑源码
-                            </button>
-                          </div>
-                        </div>
-                      ) : (
-                        <button
-                          onClick={() => setExpandedId(f.id)}
-                          className="mt-1 block w-full text-left text-xs text-gray-500 line-clamp-2 hover:text-blue-600 cursor-pointer"
-                          title="点击展开查看完整内容"
-                        >
-                          {f.content}
-                        </button>
-                      )}
-                    </div>
-
-                    {/* 折叠态：第一张缩略图 */}
-                    {!isExpanded && image && (
-                      <img
-                        src={image}
-                        alt=""
-                        className="mt-1 w-16 h-16 rounded-lg object-cover border border-gray-100 shrink-0"
-                        loading="lazy"
+                  {isEditingContent ? (
+                    <div className="mt-1">
+                      <textarea
+                        ref={editTextareaRef}
+                        value={editValue}
+                        onChange={(e) => setEditValue(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === "Escape") cancelEdit(); }}
+                        onBlur={() => saveEdit(f)}
+                        rows={6}
+                        className="w-full rounded border border-blue-300 bg-white px-2 py-1 text-xs text-gray-700 font-mono outline-none focus:ring-1 focus:ring-blue-200 resize-none"
                       />
-                    )}
-                  </div>
+                      <div className="flex items-center gap-2 mt-1.5">
+                        <button onClick={() => saveEdit(f)} className="text-xs text-blue-500 hover:text-blue-700">保存</button>
+                        <button onClick={cancelEdit} className="text-xs text-gray-400 hover:text-gray-600">取消</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="mt-1">
+                      <div
+                        className="text-xs text-gray-700 leading-relaxed bg-gray-50 rounded-lg p-3 max-h-80 overflow-y-auto
+                          [&_h1]:text-base [&_h1]:font-bold [&_h1]:mt-3 [&_h1]:mb-1
+                          [&_h2]:text-sm [&_h2]:font-semibold [&_h2]:mt-2 [&_h2]:mb-1
+                          [&_h3]:text-xs [&_h3]:font-semibold [&_h3]:mt-2 [&_h3]:mb-1
+                          [&_p]:my-1
+                          [&_ul]:my-1 [&_ul]:pl-4 [&_ul]:list-disc
+                          [&_ol]:my-1 [&_ol]:pl-4 [&_ol]:list-decimal
+                          [&_li]:my-0.5
+                          [&_a]:text-blue-500 [&_a]:underline
+                          [&_blockquote]:border-l-2 [&_blockquote]:border-gray-300 [&_blockquote]:pl-3 [&_blockquote]:text-gray-500 [&_blockquote]:my-1
+                          [&_pre]:bg-gray-100 [&_pre]:rounded [&_pre]:p-2 [&_pre]:text-[11px] [&_pre]:overflow-x-auto [&_pre]:my-1
+                          [&_code]:bg-gray-100 [&_code]:px-1 [&_code]:rounded [&_code]:text-[11px]
+                          [&_img]:max-w-full [&_img]:rounded-lg [&_img]:my-2
+                          [&_table]:w-full [&_table]:text-[11px]
+                          [&_th]:border [&_th]:border-gray-300 [&_th]:px-2 [&_th]:py-1 [&_th]:bg-gray-100
+                          [&_td]:border [&_td]:border-gray-300 [&_td]:px-2 [&_td]:py-1"
+                        dangerouslySetInnerHTML={{ __html: renderMarkdown(f.content) }}
+                      />
+                      <button
+                        onClick={() => startEdit(f, "content")}
+                        className="hidden group-hover:inline-block mt-1.5 text-xs text-gray-400 hover:text-blue-500"
+                      >
+                        编辑源码
+                      </button>
+                    </div>
+                  )}
 
                   {/* 原始链接 */}
                   {f.sourceType === "url" && f.originalUrl && (
@@ -322,6 +247,8 @@ export function FragmentList({ userId, workspaceId }: Props) {
                     </a>
                   )}
                 </div>
+
+                {/* 右侧操作 */}
                 <div className="flex items-center gap-1 shrink-0">
                   <button
                     onClick={async () => {
@@ -339,9 +266,7 @@ export function FragmentList({ userId, workspaceId }: Props) {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                     </svg>
                   </button>
-                  <span className="rounded-md bg-gray-100 px-2 py-1 text-xs text-gray-500">
-                    {f.sourceType}
-                  </span>
+                  <span className="rounded-md bg-gray-100 px-2 py-1 text-xs text-gray-500">{f.sourceType}</span>
                 </div>
               </div>
             </div>
