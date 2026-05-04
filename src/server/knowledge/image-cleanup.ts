@@ -1,4 +1,4 @@
-import { and, eq, ne, sql } from "drizzle-orm";
+import { ne } from "drizzle-orm";
 import { getDb } from "../db/client";
 import { knowledgeItems } from "../db/schema";
 import { createLocalStorageAdapter } from "../storage/adapter";
@@ -22,26 +22,22 @@ export async function cleanupOrphanImages(
 
   const db = await getDb();
 
+  // 一次查询取回所有其他素材的内容，避免 N 次 LIKE 全表扫描
+  const rows = await db
+    .select({ content: knowledgeItems.content })
+    .from(knowledgeItems)
+    .where(ne(knowledgeItems.id, deletedItemId))
+    .all();
+
+  // 合并所有剩余内容，快速检查引用
+  const allContent = rows.map((r) => r.content ?? "").join("\n");
+
+  const storageDir = path.resolve(process.cwd(), "public/storage");
+  const adapter = createLocalStorageAdapter(storageDir, "/storage");
+
   for (const imagePath of images) {
-    // 检查是否有其他素材引用该图片
-    const refs = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(knowledgeItems)
-      .where(
-        and(
-          ne(knowledgeItems.id, deletedItemId),
-          sql`${knowledgeItems.content} LIKE ${"%" + imagePath + "%"}`
-        )
-      )
-      .all();
-
-    const refCount = refs[0]?.count ?? 0;
-    if (refCount > 0) continue; // 有其他引用，保留文件
-
-    // 无其他引用，删除文件
+    if (allContent.includes(imagePath)) continue; // 有其他引用，保留
     const filename = imagePath.replace("/storage/", "");
-    const storageDir = path.resolve(process.cwd(), "public/storage");
-    const adapter = createLocalStorageAdapter(storageDir, "/storage");
     try {
       await adapter.delete(filename);
     } catch {
