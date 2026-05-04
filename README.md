@@ -36,7 +36,7 @@ src/
 │   ├── db/                           # 数据库（Drizzle ORM + Migration）
 │   ├── area/repository.ts            # 工作区 CRUD
 │   ├── workspace/repository.ts       # 工作集 CRUD
-│   ├── knowledge/repository.ts       # 素材 CRUD
+│   ├── knowledge/                     # 素材 CRUD + 图片引用追踪 + 清理
 │   ├── ingest/                       # 素材采集管线
 │   │   ├── normalize.ts              # 规范化 + 嵌入 URL 提取
 │   │   ├── storage.ts                # 管线编排（主素材 + 子素材创建）
@@ -55,7 +55,7 @@ src/
 |------|------|
 | 工作区（Area） | 按业务方向划分的顶层容器 |
 | 工作集（Collection） | 一次培训的素材容器，归入某个工作区 |
-| 素材 | 碎片知识（文本/URL/Markdown），AI 自动生成标题 |
+| 素材 | 碎片知识（文本/URL/Markdown），支持「捕获素材」（原样保存）和「提取 URL 素材」（获取正文+图片）两种模式 |
 | 框架 | 培训结构模板，内置 5 套 + 用户可自定义 |
 | 幻灯片 | AI 生成的最小输出单元（标题 + 要点 + 讲者备注 + 时长） |
 

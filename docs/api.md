@@ -133,11 +133,12 @@ Base: `/api`
 | workspaceId | body | 否 | |
 | sourceType | body | 是 | `text` / `url` / `markdown` / `voice` |
 | title | body | 否 | |
-| content | body | 是 | URL 素材传入链接地址；text/markdown 中可含链接 |
+| content | body | 是 | URL 素材传入链接地址 |
+| enrich | body | 否 | 是否获取 URL 正文 + 提取嵌入链接，默认 `false` |
 
-**行为**: 
-- `url` 类型：同步获取页面正文（MarkItDown），耗时 3-30 秒
-- `text` / `markdown` 类型：直接存储后扫描内容中的 URL，为每个 URL 创建子素材并获取正文
+**模式**:
+- `enrich: false`（捕获素材）：所有类型原样存储，不穿透 URL，不提取嵌入链接
+- `enrich: true`（提取 URL 素材）：`url` 类型通过 MarkItDown 获取页面正文并下载图片；`text`/`markdown` 类型扫描嵌入 URL 并逐个创建子素材
 - MarkItDown 不可达时降级为存储 URL 原文
 
 **返回** `{ item: KnowledgeItem }`
@@ -155,7 +156,7 @@ Base: `/api`
 
 ### `DELETE /api/knowledge-items/[id]`
 
-删除碎片。
+删除碎片。同时通过 `image_refs` 表清理不再被其他素材引用的图片文件。
 
 | 参数 | 类型 | 必填 | 说明 |
 |------|------|------|------|
