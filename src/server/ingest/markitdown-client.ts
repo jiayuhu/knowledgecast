@@ -22,8 +22,9 @@ export function createMarkItDownClient(baseUrl: string) {
           content: data.content,
           title: data.title ?? null
         };
-      } catch {
-        return null; // 优雅降级：MarkItDown 不可达
+      } catch (e) {
+        console.error("[markitdown] convertUrl failed:", url, e);
+        return null;
       }
     }
   };

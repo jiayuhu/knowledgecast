@@ -96,7 +96,7 @@ export const iterationHistory = sqliteTable("iteration_history", {
 
 export const imageRefs = sqliteTable("image_refs", {
   id: text("id").primaryKey(),
-  knowledgeItemId: text("knowledge_item_id").notNull(),
+  knowledgeItemId: text("knowledge_item_id").notNull().references(() => knowledgeItems.id, { onDelete: "cascade" }),
   imagePath: text("image_path").notNull(),
   createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull()
 });

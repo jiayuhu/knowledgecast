@@ -5,9 +5,15 @@ import { marked } from "marked";
 
 marked.setOptions({ breaks: true, gfm: true });
 
+const DANGEROUS_HREF = /(href|src)="(javascript|data):/gi;
+
+function sanitizeHtml(html: string): string {
+  return html.replace(DANGEROUS_HREF, '$1="#"');
+}
+
 function renderMarkdown(content: string): string {
   const escaped = content.replace(/</g, "&lt;").replace(/>/g, "&gt;");
-  return marked.parse(escaped) as string;
+  return sanitizeHtml(marked.parse(escaped) as string);
 }
 
 type Fragment = {
@@ -33,6 +39,7 @@ export function FragmentList({ userId, workspaceId }: Props) {
   const [editField, setEditField] = useState<"title" | "content" | null>(null);
   const [editValue, setEditValue] = useState("");
   const [generatingId, setGeneratingId] = useState<string | null>(null);
+  const [actionError, setActionError] = useState("");
   const editInputRef = useRef<HTMLInputElement>(null);
   const editTextareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -81,11 +88,16 @@ export function FragmentList({ userId, workspaceId }: Props) {
     if (editField === "title") body.title = editValue.trim() || null;
     else body.content = editValue.trim();
 
-    await fetch(`/api/knowledge-items/${f.id}`, {
+    const res = await fetch(`/api/knowledge-items/${f.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body)
     });
+    if (!res.ok) {
+      setActionError("保存失败，请重试");
+      cancelEdit();
+      return;
+    }
     setFragments((prev) =>
       prev.map((item) => {
         if (item.id !== f.id) return item;
@@ -123,6 +135,14 @@ export function FragmentList({ userId, workspaceId }: Props) {
     <div className="mt-8">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-sm font-medium uppercase tracking-wide text-gray-500">素材库 ({fragments.length})</h2>
+        {actionError && (
+          <button
+            onClick={() => setActionError("")}
+            className="ml-auto text-xs text-red-600 bg-red-50 px-2 py-0.5 rounded"
+          >
+            {actionError}
+          </button>
+        )}
         <button onClick={loadFragments} className="text-xs font-medium text-gray-500 hover:text-gray-700">刷新</button>
       </div>
       <div className="space-y-2">
@@ -252,11 +272,15 @@ export function FragmentList({ userId, workspaceId }: Props) {
                 <div className="flex items-center gap-1 shrink-0">
                   <button
                     onClick={async () => {
-                      await fetch(`/api/knowledge-items/${f.id}`, {
+                      const res = await fetch(`/api/knowledge-items/${f.id}`, {
                         method: "DELETE",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({ userId })
                       });
+                      if (!res.ok) {
+                        setActionError("删除失败，请重试");
+                        return;
+                      }
                       setFragments((prev) => prev.filter((item) => item.id !== f.id));
                     }}
                     className="hidden group-hover:block rounded p-1 text-gray-400 hover:bg-red-50 hover:text-red-600"

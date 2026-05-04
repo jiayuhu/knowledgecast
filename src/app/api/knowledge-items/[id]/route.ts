@@ -20,8 +20,8 @@ export async function DELETE(
   const { id } = await params;
   const payload = deleteSchema.parse(await request.json());
   const deletedContent = await deleteKnowledgeItem(id, payload.userId);
-  // 安全清理不再被引用的图片（优先 image_refs 表，兜底内容扫描）
-  cleanupOrphanImages(id, deletedContent);
+  // 等待图片清理完成（优先 image_refs 表，兜底内容扫描）
+  await cleanupOrphanImages(id, deletedContent);
   return NextResponse.json({ success: true });
 }
 

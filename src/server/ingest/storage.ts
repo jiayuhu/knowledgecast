@@ -62,25 +62,27 @@ export async function storeKnowledgeInput(input: {
     originalUrl: normalized.originalUrl
   }, imagePaths);
 
-  // 仅当 enrich 开启时，提取 text/markdown 中的嵌入 URL 并创建子素材
+  // 仅当 enrich 开启时，提取 text/markdown 中的嵌入 URL 并并发创建子素材
   if (shouldEnrich && (input.sourceType === "text" || input.sourceType === "markdown")) {
     const urls = extractUrls(input.content);
-    for (const url of urls) {
-      try {
-        const childNormalized = normalizeKnowledgeInput({ sourceType: "url", content: url });
-        const childEnriched = await enrichUrlContent(childNormalized, { markitdown, imageHandler });
-        await createWithRefs({
-          userId: input.userId,
-          workspaceId: input.workspaceId,
-          sourceType: "url",
-          title: childEnriched.normalized.title,
-          content: childEnriched.normalized.content,
-          originalUrl: url
-        }, childEnriched.imagePaths);
-      } catch {
-        // 单条 URL 获取失败不影响其他
-      }
-    }
+    await Promise.allSettled(
+      urls.map(async (url) => {
+        try {
+          const childNormalized = normalizeKnowledgeInput({ sourceType: "url", content: url });
+          const childEnriched = await enrichUrlContent(childNormalized, { markitdown, imageHandler });
+          await createWithRefs({
+            userId: input.userId,
+            workspaceId: input.workspaceId,
+            sourceType: "url",
+            title: childEnriched.normalized.title,
+            content: childEnriched.normalized.content,
+            originalUrl: url
+          }, childEnriched.imagePaths);
+        } catch (e) {
+          console.error("[ingest] child URL enrichment failed:", url, e);
+        }
+      })
+    );
   }
 
   return primary;

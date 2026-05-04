@@ -1,9 +1,9 @@
 import { randomUUID } from "node:crypto";
-import { and, eq, ne } from "drizzle-orm";
+import { and, eq, inArray, ne, sql } from "drizzle-orm";
 import { getDb } from "../db/client";
 import { imageRefs } from "../db/schema";
 
-/** 将图片路径关联到知识条目 */
+/** 批量将图片路径关联到知识条目 */
 export async function recordImageRefs(
   knowledgeItemId: string,
   imagePaths: string[]
@@ -11,14 +11,14 @@ export async function recordImageRefs(
   if (imagePaths.length === 0) return;
   const db = await getDb();
   const now = Date.now();
-  for (const path of imagePaths) {
-    await db.insert(imageRefs).values({
+  await db.insert(imageRefs).values(
+    imagePaths.map((path) => ({
       id: randomUUID(),
       knowledgeItemId,
       imagePath: path,
       createdAt: new Date(now)
-    }).run();
-  }
+    }))
+  ).run();
 }
 
 /** 获取某素材的所有图片引用 */
@@ -41,21 +41,30 @@ export async function deleteImageRefs(knowledgeItemId: string) {
     .run();
 }
 
-/** 检查某图片是否被其他素材引用 */
-export async function countOtherRefs(
-  imagePath: string,
+/** 批量检查图片是否被其他素材引用，返回无引用的路径列表 */
+export async function findOrphanImages(
+  imagePaths: string[],
   excludeItemId: string
-): Promise<number> {
+): Promise<string[]> {
+  if (imagePaths.length === 0) return [];
   const db = await getDb();
+
+  // 批量查询：统计每个图片路径在其他素材中的引用次数
   const rows = await db
-    .select()
+    .select({
+      imagePath: imageRefs.imagePath,
+      count: sql<number>`count(*)`.mapWith(Number)
+    })
     .from(imageRefs)
     .where(
       and(
-        eq(imageRefs.imagePath, imagePath),
+        inArray(imageRefs.imagePath, imagePaths),
         ne(imageRefs.knowledgeItemId, excludeItemId)
       )
     )
+    .groupBy(imageRefs.imagePath)
     .all();
-  return rows.length;
+
+  const refMap = new Map(rows.map((r) => [r.imagePath, r.count]));
+  return imagePaths.filter((path) => !refMap.has(path));
 }

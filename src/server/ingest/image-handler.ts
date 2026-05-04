@@ -18,7 +18,13 @@ function detectExtension(buffer: Buffer): string {
   if (buffer[0] === 0xff && buffer[1] === 0xd8) return "jpg";
   if (buffer[0] === 0x89 && buffer[1] === 0x50) return "png";
   if (buffer[0] === 0x47 && buffer[1] === 0x49) return "gif";
-  if (buffer[0] === 0x52 && buffer[1] === 0x49) return "webp";
+  // RIFF 容器：检查 WEBP 魔术字 (bytes 8-11)
+  if (buffer[0] === 0x52 && buffer[1] === 0x49 && buffer[8] === 0x57 && buffer[9] === 0x45 && buffer[10] === 0x42 && buffer[11] === 0x50) return "webp";
+  // SVG: 检查 XML 或 svg 开头
+  if (buffer[0] === 0x3c) {
+    const head = buffer.toString("utf-8", 0, 5).toLowerCase();
+    if (head.startsWith("<svg") || head.startsWith("<?xml")) return "svg";
+  }
   return "png";
 }
 
@@ -33,7 +39,7 @@ function resolveImageUrl(src: string, baseUrl: string): string {
 export function createImageHandler(storage: StorageAdapter) {
   return {
     async processImages(markdown: string, baseUrl: string): Promise<ProcessResult> {
-      const images: Array<{ alt: string; url: string; index: number }> = [];
+      const images: Array<{ alt: string; url: string; index: number; length: number }> = [];
       const matches = [...markdown.matchAll(IMAGE_RE)];
 
       if (matches.length === 0) {
@@ -41,7 +47,12 @@ export function createImageHandler(storage: StorageAdapter) {
       }
 
       for (const match of matches) {
-        images.push({ alt: match[1], url: match[2], index: match.index! });
+        images.push({
+          alt: match[1],
+          url: match[2],
+          index: match.index!,
+          length: match[0].length
+        });
       }
 
       const results = await Promise.allSettled(
@@ -58,22 +69,28 @@ export function createImageHandler(storage: StorageAdapter) {
         })
       );
 
-      let rewritten = markdown;
+      // 记录成功下载的记录，从右往左按位点替换避免偏移
+      const replacements: Array<{ pos: number; len: number; newMd: string }> = [];
       const successful: ImageRecord[] = [];
-      let offset = 0;
 
       for (let i = 0; i < images.length; i++) {
         const result = results[i];
         if (result.status === "fulfilled") {
-          const record = result.value;
-          const oldUrl = record.originalUrl;
-          const pos = rewritten.indexOf(oldUrl, offset);
-          if (pos !== -1) {
-            rewritten = rewritten.slice(0, pos) + record.localPath + rewritten.slice(pos + oldUrl.length);
-            offset = pos + record.localPath.length;
-          }
-          successful.push(record);
+          const img = images[i];
+          replacements.push({
+            pos: img.index,
+            len: img.length,
+            newMd: `![${img.alt}](${result.value.localPath})`
+          });
+          successful.push(result.value);
         }
+      }
+
+      let rewritten = markdown;
+      // 从右往左替换避免偏移漂移
+      replacements.sort((a, b) => b.pos - a.pos);
+      for (const r of replacements) {
+        rewritten = rewritten.slice(0, r.pos) + r.newMd + rewritten.slice(r.pos + r.len);
       }
 
       return { markdown: rewritten, images: successful };

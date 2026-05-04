@@ -34,7 +34,7 @@ async function createUrlItem(
   userId: string,
   workspaceId: string,
   url: string
-): Promise<{ id: string; title: string | null }> {
+): Promise<{ id: string; title: string | null; content: string }> {
   const res = await fetch("/api/knowledge-items", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -49,7 +49,7 @@ async function createUrlItem(
   });
   if (!res.ok) throw new Error("创建失败");
   const data = await res.json();
-  return { id: data.item.id, title: data.item.title ?? null };
+  return { id: data.item.id, title: data.item.title ?? null, content: data.item.content ?? url };
 }
 
 async function generateTitle(content: string): Promise<string> {
@@ -152,26 +152,31 @@ export function CaptureInput({ userId, workspaceId, onDone }: Props) {
     }
 
     setLoading(true);
+    show(`检测到 ${urls.length} 个 URL，并行获取中…`);
 
+    // 并发处理，限制并发数 3
+    const CONCURRENCY = 3;
+    let completed = 0;
     let success = 0;
     let fail = 0;
 
-    for (let i = 0; i < urls.length; i++) {
-      const url = urls[i];
-      show(`正在获取 (${i + 1}/${urls.length}): ${shortUrl(url)}…`);
-
+    async function processOne(url: string) {
       try {
         const item = await createUrlItem(userId, workspaceId, url);
         if (!item.title) {
-          try {
-            const title = await generateTitle(url);
-            await patchTitle(userId, item.id, title);
-          } catch { /* ignore */ }
+          try { await patchTitle(userId, item.id, await generateTitle(item.content)); } catch { /* ignore */ }
         }
         success++;
       } catch {
         fail++;
       }
+      completed++;
+      show(`已完成 ${completed}/${urls.length}（${success} 成功${fail > 0 ? `，${fail} 失败` : ""}）`);
+    }
+
+    // 分批并发
+    for (let i = 0; i < urls.length; i += CONCURRENCY) {
+      await Promise.allSettled(urls.slice(i, i + CONCURRENCY).map(processOne));
     }
 
     setContent("");
