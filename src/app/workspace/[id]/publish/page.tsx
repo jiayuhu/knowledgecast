@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 
 type Workspace = { id: string; name: string; areaId?: string | null };
@@ -13,6 +13,7 @@ type TrainingPageItem = {
 
 export default function PublishPage() {
   const { id } = useParams<{ id: string }>();
+  const router = useRouter();
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [areaName, setAreaName] = useState("");
   const [pages, setPages] = useState<TrainingPageItem[]>([]);
@@ -36,7 +37,13 @@ export default function PublishPage() {
 
     fetch("/api/training-pages?userId=demo-user&limit=50")
       .then((r) => r.json())
-      .then((data) => setPages((data.trainingPages ?? []) as TrainingPageItem[]))
+      .then((data) => {
+        const items = (data.trainingPages ?? []) as TrainingPageItem[];
+        setPages(items);
+        if (items.length === 0) {
+          router.push(`/workspace/${id}/structure`);
+        }
+      })
       .finally(() => setLoading(false));
   }, [id]);
 

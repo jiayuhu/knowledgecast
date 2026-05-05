@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { FrameworkPicker } from "@/components/workspace/FrameworkPicker";
 import { SlidePreview } from "@/components/workspace/SlidePreview";
@@ -32,6 +32,7 @@ function ShareLinkCard({ token }: { token: string }) {
 
 export default function StructurePage() {
   const { id } = useParams<{ id: string }>();
+  const router = useRouter();
   const [userId] = useState("demo-user");
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [areaName, setAreaName] = useState("");
@@ -81,7 +82,14 @@ export default function StructurePage() {
     if (!workspace) return;
     fetch(`/api/knowledge-items?userId=demo-user&workspaceId=${encodeURIComponent(workspace.id)}&limit=50`)
       .then((r) => r.json())
-      .then((data) => setFragments((data.knowledgeItems ?? [] as Fragment[]).filter((f: Fragment) => f.status !== "archived")))
+      .then((data) => {
+        const items = (data.knowledgeItems ?? [] as Fragment[]).filter((f: Fragment) => f.status !== "archived");
+        setFragments(items);
+        if (items.length === 0) {
+          setMessage("当前工作集还没有素材，请先采集素材");
+          setTimeout(() => router.push(`/workspace/${id}/capture`), 1500);
+        }
+      })
       .catch(() => setMessage("加载素材失败"));
   }, [workspace]);
 
