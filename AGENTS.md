@@ -59,6 +59,12 @@ KnowledgeCast is a small SaaS for turning fragmented knowledge into structured c
 - Preserve existing user changes; do not revert unrelated work
 - Use non-destructive git commands only
 
+### 调试规则
+
+- 遇到任何 bug、测试失败、非预期行为时，必须先调用 `superpowers:systematic-debugging` skill，再修复
+- 修复完成后，必须先调用 `superpowers:verification-before-completion` skill 验证，再声称完成
+- 禁止跳过这两个步骤直接提交
+
 ## Notes
 
 - The repository starts empty by design
