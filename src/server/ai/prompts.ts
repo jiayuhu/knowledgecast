@@ -38,7 +38,7 @@ export function buildSlideGenerationPrompt(
     "- 幻灯片之间要有逻辑递进",
     "- 讲者备注要有实操性，不是重复要点而是补充讲解技巧",
     "- 总时长控制在合理范围（一般 15-45 分钟）",
-    "- 如果素材不足以支撑某个环节，用 follow-up 问题替代并在 speakerNotes 中标注"
+    "- 对每个环节评估素材是否足够支撑该环节内容。如果某环节素材明显不足，在该环节第一张幻灯片的 speakerNotes 中以「[素材不足] 建议补充：XX」开头给出具体建议。如果素材充足则不添加此标记"
   );
 
   return lines.join("\n");
