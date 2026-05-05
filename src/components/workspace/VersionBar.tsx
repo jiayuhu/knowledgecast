@@ -6,7 +6,7 @@ type VersionSummary = {
   id: string;
   version: number;
   instruction: string;
-  createdAt: string; // ISO string from JSON serialization
+  createdAt: number; // timestamp_ms from Drizzle, serialized as JSON number
 };
 
 type Props = {

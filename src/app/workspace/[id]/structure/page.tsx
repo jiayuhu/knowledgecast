@@ -201,11 +201,18 @@ export default function StructurePage() {
     // Debounce save to server
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(async () => {
-      await fetch(`/api/training-pages/${result.trainingPage.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId, slidesJson: newSlidesJson })
-      });
+      try {
+        const res = await fetch(`/api/training-pages/${result.trainingPage.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId, slidesJson: newSlidesJson })
+        });
+        if (!res.ok) {
+          console.error("Failed to save edits:", await res.text());
+        }
+      } catch (err) {
+        console.error("Failed to save edits:", err);
+      }
     }, 500);
   }
 

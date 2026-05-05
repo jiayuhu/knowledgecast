@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { updateTrainingPage, saveVersionSnapshot } from "@/server/training/repository";
+import { updateTrainingPage, saveVersionSnapshot, listRecentTrainingPages } from "@/server/training/repository";
 
 export async function PATCH(
   request: Request,
@@ -18,6 +18,16 @@ export async function PATCH(
     const isRestore = !!(restoreInstruction && preRestoreVersion && preRestoreSlidesJson);
     if (!hasUpdateFields && !isRestore) {
       return NextResponse.json({ error: "没有提供需要更新的字段" }, { status: 400 });
+    }
+
+    // Check ownership before any writes
+    const pages = await listRecentTrainingPages(userId, 100);
+    const existingPage = pages.find(p => p.id === id);
+    if (!existingPage) {
+      return NextResponse.json({ error: "培训页不存在" }, { status: 404 });
+    }
+    if (existingPage.userId !== userId) {
+      return NextResponse.json({ error: "无权修改此培训页" }, { status: 403 });
     }
 
     // On restore, save the current state as a snapshot so user can undo
@@ -40,10 +50,6 @@ export async function PATCH(
       updateFields.status = "ready";
     }
     const updated = await updateTrainingPage(id, updateFields as Parameters<typeof updateTrainingPage>[1]);
-
-    if (updated.userId !== userId) {
-      return NextResponse.json({ error: "无权修改此培训页" }, { status: 403 });
-    }
 
     // Save the restored version itself as a snapshot
     if (restoreInstruction && version) {
