@@ -6,7 +6,9 @@ import type { AIProvider, TrainingContent } from "../ai/types";
 import { getFramework } from "./frameworks";
 import {
   createTrainingPage,
-  updateTrainingPage
+  updateTrainingPage,
+  saveVersionSnapshot,
+  listVersions
 } from "./repository";
 
 function buildContentBlocks(input: {
@@ -159,6 +161,21 @@ export async function generateTrainingSlides(
   const slidesJson = JSON.stringify(slides);
 
   if (input.previousPageId) {
+    // Save current snapshot before overwriting with new version
+    if (previousSlides) {
+      const prevVersion = version - 1;
+      const existingSnapshots = await listVersions(input.previousPageId);
+      const snapshotExists = existingSnapshots.some(s => s.version === prevVersion);
+      if (!snapshotExists) {
+        await saveVersionSnapshot({
+          trainingPageId: input.previousPageId,
+          version: prevVersion,
+          instruction: prevVersion === 1 ? "首次生成" : (input.instruction ?? "迭代调整"),
+          slidesJson: JSON.stringify(previousSlides)
+        });
+      }
+    }
+
     const trainingPage = await updateTrainingPage(input.previousPageId, {
       title: slides.title,
       framework: input.frameworkId,
