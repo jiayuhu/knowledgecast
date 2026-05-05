@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
-import { desc, eq, inArray } from "drizzle-orm";
+import { asc, desc, eq, inArray } from "drizzle-orm";
 import { getDb } from "../db/client";
-import { shareLinks, trainingPages } from "../db/schema";
+import { iterationHistory, shareLinks, trainingPages } from "../db/schema";
 
 export type TrainingPageRecord = {
   id: string;
@@ -151,4 +151,48 @@ export async function listRecentTrainingPages(userId: string, limit = 5) {
         : null
     };
   });
+}
+
+export async function saveVersionSnapshot(input: {
+  trainingPageId: string;
+  version: number;
+  instruction: string;
+  slidesJson: string;
+}) {
+  const db = await getDb();
+  await db.insert(iterationHistory).values({
+    id: randomUUID(),
+    trainingPageId: input.trainingPageId,
+    version: input.version,
+    instruction: input.instruction,
+    slidesJson: input.slidesJson,
+    createdAt: new Date()
+  }).run();
+}
+
+export async function listVersions(trainingPageId: string) {
+  const db = await getDb();
+  const rows = await db
+    .select({
+      id: iterationHistory.id,
+      version: iterationHistory.version,
+      instruction: iterationHistory.instruction,
+      createdAt: iterationHistory.createdAt
+    })
+    .from(iterationHistory)
+    .where(eq(iterationHistory.trainingPageId, trainingPageId))
+    .orderBy(asc(iterationHistory.version))
+    .all();
+
+  return rows;
+}
+
+export async function getVersionSnapshot(id: string) {
+  const db = await getDb();
+  const rows = await db
+    .select()
+    .from(iterationHistory)
+    .where(eq(iterationHistory.id, id))
+    .all();
+  return rows[0] ?? null;
 }
