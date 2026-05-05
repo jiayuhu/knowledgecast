@@ -27,7 +27,11 @@ export function WorkspaceLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="h-screen flex flex-col bg-gray-50">
-      <WorkspaceNav />
+      <WorkspaceNav
+        workspaceId={workspace?.id}
+        workspaceName={workspace?.name}
+        areaName={area?.name}
+      />
       <div className="flex flex-1 overflow-hidden">
         <Sidebar
           userId={userId}

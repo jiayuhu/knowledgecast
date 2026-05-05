@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { createAIProvider } from "@/server/ai/provider";
+import { getAIProvider } from "@/server/ai/provider";
 
 const TITLE_GEN_MAX_CHARS = 3000;
 
@@ -13,7 +13,7 @@ export async function POST(request: Request) {
   // 标题生成只需文章开头即可，截断省 token
   const content = String(raw.content ?? "").slice(0, TITLE_GEN_MAX_CHARS);
   const payload = generateTitleSchema.parse({ content });
-  const provider = createAIProvider();
+  const provider = await getAIProvider();
 
   const result = await provider.generate({
     fragments: [{ id: "title-gen", content: payload.content }],

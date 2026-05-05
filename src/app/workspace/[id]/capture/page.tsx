@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { ActionTabs } from "@/components/workspace/ActionTabs";
 import { CaptureInput } from "@/components/workspace/CaptureInput";
 import { FragmentList } from "@/components/workspace/FragmentList";
 
@@ -43,7 +42,6 @@ export default function CapturePage() {
 
   return (
     <main className="px-8 py-8">
-      {workspace && <ActionTabs workspaceId={id} workspaceName={workspace.name} areaName={areaName} />}
       <h1 className="text-2xl font-bold tracking-tight text-gray-900 mb-2">采集素材</h1>
       <p className="text-sm text-gray-500 mb-6">粘贴碎片知识、链接或 Markdown，系统自动识别类型并存入当前工作集</p>
       {workspace ? (

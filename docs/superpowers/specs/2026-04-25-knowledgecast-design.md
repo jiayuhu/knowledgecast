@@ -118,7 +118,21 @@ KnowledgeCast 不是泛知识管理工具，也不是大而全内容平台。它
 
 ### 6.0 导航层
 
-左侧固定侧边栏（w-60，240px），树形结构：
+**顶部导航栏**：始终可见，布局为：
+
+```
+🔷 KnowledgeCast │ 工作区 / 工作集 │ 采集 整理 发布 设置 │  + 新建素材  [用户]
+  Logo + 名称      面包屑           标签导航              操作按钮      用户菜单
+```
+
+- 进入工作集后显示完整导航；未进入时仅显示 Logo + 名称
+- 面包屑显示工作区名 / 工作集名，点击工作集名回到 Dashboard
+- 标签导航高亮当前页面（采集/整理/发布/设置）
+- 「+ 新建素材」快捷跳转到采集页
+- 用户头像菜单：显示用户名/邮箱、AI 模型设置入口、退出登录（预留）
+- 未归类素材页仅显示 Logo + 📦 未归类素材 标识
+
+**左侧侧边栏**（w-60，240px），树形结构：
 
 ```
 📁 工作区 A (可折叠，可拖拽排序)
@@ -128,14 +142,18 @@ KnowledgeCast 不是泛知识管理工具，也不是大而全内容平台。它
 📁 工作区 B
   └── ...
 + 新建工作区
+─────────────────
+📦 未归类素材
 ```
 
-- 侧边栏始终可见，sticky 定位在顶栏下方
+- 侧边栏始终可见
 - 点击工作集跳转到其 Dashboard 页面
 - 仅剩一个工作区时，删除按钮隐藏（至少保留一个工作区）
 - 工作区下仅剩一个工作集时，该工作集的删除按钮隐藏（每个工作区至少保留一个工作集）
 - 工作区和工作集悬停显示改名/删除按钮
 - 支持拖拽排序和跨工作区移动工作集
+- 分割线下方「未归类素材」入口，选中时蓝色高亮
+- 未归类素材入口在选中时，工作集选中状态自动取消
 
 工作集 Dashboard（`/workspace/[id]`）：
 - 显示工作区名称 + 工作集名称
@@ -196,15 +214,17 @@ KnowledgeCast 不是泛知识管理工具，也不是大而全内容平台。它
 
 ### 7.1 创建工作流
 
-侧边栏导航 + 页面顶部 action tabs，可自由循环切换：
+侧边栏导航 + 顶部导航栏标签，可自由循环切换：
 
 1. **侧边栏**：选择工作区 → 选择工作集 → 进入 Dashboard
 2. **Dashboard**：卡片入口进入采集/整理/发布，或点击设置
-3. **采集**：粘贴文本/链接/Markdown，AI 生成标题，存入当前工作集
+3. **采集**：粘贴文本/链接/Markdown，AI 生成标题，存入当前工作集。支持「捕获素材」（原样保存）和「提取 URL 素材」（并行获取正文）两种模式
 4. **整理**：勾选素材 → 选择框架（内置或自定义） → AI 生成幻灯片 → 对话式迭代
 5. **发布**：复制链接或预览学员视角
 
-Action tabs 在每个子页面顶部显示，含面包屑（工作区名 / 工作集名） + 采集/整理/发布/设置四个标签。可随时切换。
+顶部导航栏统一显示面包屑（工作区名 / 工作集名） + 采集/整理/发布/设置四个标签，可随时切换。不再在每个页面内容区内重复显示导航。
+
+**新建工作集**：创建后自动跳转到 Dashboard，侧边栏和导航栏同步更新。
 
 ### 7.2 侧边栏交互
 
@@ -281,12 +301,30 @@ type TrainingContent = {
 
 `ShareLink`：active → revoked
 
+### 9.4 未归类素材
+
+删除工作集时，关联素材的 `workspaceId` 被置空而非删除。这些脱离工作集的素材进入「未归类素材」视图。
+
+- 路由：`/workspace/orphaned`
+- 侧边栏底部独立入口，带分割线和仓库图标
+- 列表展示所有脱离工作集的素材（源类型、标题、日期）
+- 支持通过下拉选择器将素材转移到任意工作集
+- 空状态显示引导文案
+
+### 9.5 工作集删除
+
+- 两步确认流程：点击删除 → 展开确认面板 → 输入工作集名称精确匹配 → 确认
+- 红色警告区列出影响范围和不可撤销提示
+- 明确告知素材「不会被删除，保留在系统中」
+- 服务端显式将关联素材 `workspaceId` 置空
+
 ## 10. 系统架构
 
 - 前端：Next.js 15 + React 19 + Tailwind CSS v4
 - 后端：Next.js API Routes + Server Components
-- 数据库：SQLite + Drizzle ORM + Drizzle Migration（`drizzle/` 目录，`npm run db:generate` 生成，启动时自动执行，增量迁移不丢失数据）
-- AI：DeepSeek API（默认）/ OpenAI API（可选切换）
+- 数据库：SQLite + Drizzle ORM + Drizzle Migration（`drizzle/` 目录，`npx drizzle-kit generate` 生成，启动时自动执行，增量迁移不丢失数据）
+- AI：DeepSeek API（默认）/ OpenAI API（可选切换）。用户通过 `app_settings` 表管理自有 API Key（BYOK），AES-256-GCM 加密存储。AI 配置不完整时明确提示用户，不回退到环境变量
+- 加密：`ENCRYPTION_KEY` 环境变量作为加密密钥
 - 部署：Vercel / Node.js 服务
 
 数据库命名约定：
@@ -313,10 +351,18 @@ AI 输出结构化的幻灯片 JSON（而非自由文本），每页包含标题
 
 每次调整保留快照，用户可随时回退。版本历史可视化，清晰展示每次改了什么。
 
-### 11.5 稳定输出
+### 11.5 BYOK 模型配置
+
+- 用户自行配置 AI 服务商的 API Key（DeepSeek / OpenAI）
+- API Key 通过 AES-256-GCM 加密存入 `app_settings` 表
+- 可配置参数：Provider、API Key、Model、Temperature、Max Tokens
+- AI 配置不完整时，AI 功能返回明确错误提示，不回退到环境变量
+- `/api/settings` 提供配置状态检查（`aiStatus.configured`）
+
+### 11.6 稳定输出
 
 - AI 输出通过 Zod Schema 校验
-- 温度参数设为 0.1，保证一致性
+- 温度参数通过全局设置可配置（默认 0.7），生成训练内容时建议较低值
 - JSON 模式强制结构化输出
 
 ## 12. 安全与风险
@@ -390,9 +436,26 @@ AI 输出结构化的幻灯片 JSON（而非自由文本），每页包含标题
 
 | 层级 | 样式 | 用途 |
 |------|------|------|
-| Primary | `bg-blue-600 text-white hover:bg-blue-700` | 生成、发布 |
+| Primary | `bg-blue-600 text-white hover:bg-blue-700` | 生成、发布、捕获素材 |
+| Deep | `bg-blue-700 text-white hover:bg-blue-800` | 提取 URL 素材（与 Primary 等重，深色区分操作性质） |
 | Secondary | `border border-gray-300 text-gray-700 hover:bg-gray-50` | 保存、刷新 |
 | Tertiary | `text-gray-600 hover:text-gray-900` | 取消、关闭 |
+| Danger | `bg-red-600 text-white hover:bg-red-700` | 删除确认 |
+
+### 13.7 导航栏标签
+
+| 状态 | 样式 |
+|------|------|
+| 选中 | `bg-gray-100 text-gray-900` |
+| 未选中 | `text-gray-500 hover:bg-gray-50 hover:text-gray-700` |
+
+### 13.8 侧边栏选中
+
+| 状态 | 样式 |
+|------|------|
+| 选中（工作集） | `bg-blue-50 text-blue-700 font-medium` |
+| 未选中 | `text-gray-600 hover:bg-gray-50` |
+| 未归类素材选中 | 同上 `bg-blue-50 text-blue-700 font-medium` |
 
 ## 14. 成功标准
 

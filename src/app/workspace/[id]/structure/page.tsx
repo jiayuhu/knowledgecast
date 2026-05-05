@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { ActionTabs } from "@/components/workspace/ActionTabs";
 import { FrameworkPicker } from "@/components/workspace/FrameworkPicker";
 import { SlidePreview } from "@/components/workspace/SlidePreview";
 import { IterationPanel } from "@/components/workspace/IterationPanel";
@@ -122,7 +121,6 @@ export default function StructurePage() {
 
   return (
     <main className="px-8 py-8">
-      {workspace && <ActionTabs workspaceId={id} workspaceName={workspace.name} areaName={areaName} />}
       <h1 className="text-2xl font-bold tracking-tight text-gray-900 mb-2">整理内容</h1>
       <p className="text-sm text-gray-500 mb-6">选择培训框架，选中素材，AI 将其组织成结构化幻灯片</p>
       {workspace ? (

@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { ActionTabs } from "@/components/workspace/ActionTabs";
 import Link from "next/link";
 
 type Workspace = { id: string; name: string; areaId?: string | null };
@@ -51,7 +50,6 @@ export default function PublishPage() {
 
   return (
     <main className="px-8 py-8">
-      {workspace && <ActionTabs workspaceId={id} workspaceName={workspace.name} areaName={areaName} />}
       <h1 className="text-2xl font-bold tracking-tight text-gray-900 mb-2">发布培训页</h1>
       <p className="text-sm text-gray-500 mb-6">管理已生成的培训页，复制链接或预览</p>
       {pages.length === 0 ? (

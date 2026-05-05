@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { listOrphanedKnowledgeItems } from "@/server/knowledge/repository";
 import { listRecentKnowledgeItems } from "@/server/knowledge/repository";
 import { storeKnowledgeInput } from "@/server/ingest/storage";
 
@@ -20,6 +21,14 @@ const createKnowledgeItemSchema = z.object({
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
+  const orphaned = url.searchParams.get("orphaned") === "true";
+
+  if (orphaned) {
+    const userId = url.searchParams.get("userId") ?? "demo-user";
+    const items = await listOrphanedKnowledgeItems(userId);
+    return NextResponse.json({ knowledgeItems: items });
+  }
+
   const payload = listKnowledgeItemsSchema.parse({
     userId: url.searchParams.get("userId") ?? "",
     workspaceId: url.searchParams.get("workspaceId") ?? undefined,

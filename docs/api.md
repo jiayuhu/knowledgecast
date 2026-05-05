@@ -88,7 +88,7 @@ Base: `/api`
 
 ### `DELETE /api/workspaces/[id]`
 
-删除工作集。
+删除工作集。工作集下的素材不会删除，`workspaceId` 会被置空（脱离工作集），可在「未归类素材」中管理。
 
 ---
 
@@ -119,6 +119,7 @@ Base: `/api`
 |------|------|------|------|
 | userId | query | 是 | |
 | workspaceId | query | 否 | 按工作集过滤 |
+| orphaned | query | 否 | `true` 时列出脱离工作集的素材 |
 | limit | query | 否 | 默认 5，最大 200 |
 
 **返回** `{ knowledgeItems: KnowledgeItem[] }`
@@ -145,7 +146,7 @@ Base: `/api`
 
 ### `PATCH /api/knowledge-items/[id]`
 
-更新或归档碎片。只传 `userId` 时执行归档；传 `title` 或 `content` 时执行更新。
+更新、归档或转移碎片。只传 `userId` 时执行归档；传其他字段时执行对应更新。
 
 | 参数 | 类型 | 必填 | 说明 |
 |------|------|------|------|
@@ -153,6 +154,7 @@ Base: `/api`
 | userId | body | 是 | |
 | title | body | 否 | |
 | content | body | 否 | |
+| workspaceId | body | 否 | 转移到目标工作集，可传 `null` 脱离 |
 
 ### `DELETE /api/knowledge-items/[id]`
 
@@ -252,6 +254,40 @@ AI 生成培训幻灯片。
 
 ---
 
+## 全局设置
+
+### `GET /api/settings`
+
+获取应用设置和 AI 配置状态。
+
+**返回** `{ settings: AppSettings, aiStatus: AISettingsStatus }`
+
+### `PUT /api/settings`
+
+更新应用设置。API Key 通过 AES-256-GCM 加密存储。
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| aiProvider | body | 否 | `deepseek` / `openai` |
+| deepseekApiKey | body | 否 | DeepSeek API Key，传脱敏格式时跳过 |
+| deepseekModel | body | 否 | 模型名称 |
+| openaiApiKey | body | 否 | OpenAI API Key，传脱敏格式时跳过 |
+| openaiModel | body | 否 | 模型名称 |
+| temperature | body | 否 | 0-2，默认 0.7 |
+| maxTokens | body | 否 | 1-128000，默认 4096 |
+
+**AISettingsStatus 类型**:
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| configured | boolean | AI 配置是否完整可用 |
+| provider | string | 当前选择的服务商 |
+| hasApiKey | boolean | 是否已配置 API Key |
+| model | string | 当前模型 |
+| message | string | 状态描述 |
+
+---
+
 ## 数据类型
 
 ```typescript
@@ -298,5 +334,23 @@ type ShareLink = {
   token: string;
   status: "active" | "revoked";
   expiresAt: string;
+};
+
+type AppSettings = {
+  aiProvider: "deepseek" | "openai";
+  deepseekApiKey: string;
+  deepseekModel: string;
+  openaiApiKey: string;
+  openaiModel: string;
+  temperature: number;
+  maxTokens: number;
+};
+
+type AISettingsStatus = {
+  configured: boolean;
+  provider: string;
+  hasApiKey: boolean;
+  model: string;
+  message: string;
 };
 ```

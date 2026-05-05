@@ -6,7 +6,8 @@ import { cleanupOrphanImages } from "@/server/knowledge/image-cleanup";
 const updateKnowledgeItemSchema = z.object({
   userId: z.string().min(1),
   title: z.string().nullable().optional(),
-  content: z.string().min(1).optional()
+  content: z.string().min(1).optional(),
+  workspaceId: z.string().nullable().optional(),
 });
 
 const deleteSchema = z.object({
@@ -32,16 +33,17 @@ export async function PATCH(
   const { id } = await params;
   const payload = updateKnowledgeItemSchema.parse(await request.json());
 
-  // 如果只有 userId，执行归档
-  if (payload.title === undefined && payload.content === undefined) {
+  // 如果只有 userId（无其他字段），执行归档
+  if (payload.title === undefined && payload.content === undefined && payload.workspaceId === undefined) {
     const item = await archiveKnowledgeItem(id, payload.userId);
     return NextResponse.json({ item });
   }
 
-  // 更新标题或内容
+  // 更新标题、内容或所属工作集
   const item = await updateKnowledgeItem(id, payload.userId, {
     title: payload.title,
-    content: payload.content
+    content: payload.content,
+    workspaceId: payload.workspaceId,
   });
 
   if (!item) {

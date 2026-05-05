@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { and, asc, eq } from "drizzle-orm";
 import { getDb } from "../db/client";
-import { workspaces } from "../db/schema";
+import { knowledgeItems, workspaces } from "../db/schema";
 
 export type WorkspaceRecord = {
   id: string;
@@ -85,6 +85,12 @@ export async function reorderWorkspaces(orderedIds: string[]) {
 
 export async function deleteWorkspace(id: string) {
   const db = await getDb();
+  // 将素材脱离工作集，不删除数据
+  await db
+    .update(knowledgeItems)
+    .set({ workspaceId: null })
+    .where(eq(knowledgeItems.workspaceId, id))
+    .run();
   await db.delete(workspaces).where(eq(workspaces.id, id)).run();
 }
 

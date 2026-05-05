@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { createAIProvider } from "@/server/ai/provider";
+import { getAIProvider } from "@/server/ai/provider";
 import { generateTrainingSlides } from "@/server/training/service";
 
 const generateSlidesSchema = z.object({
@@ -14,7 +14,7 @@ const generateSlidesSchema = z.object({
 
 export async function POST(request: Request) {
   const payload = generateSlidesSchema.parse(await request.json());
-  const provider = createAIProvider();
+  const provider = await getAIProvider();
   const result = await generateTrainingSlides(
     {
       userId: payload.userId,

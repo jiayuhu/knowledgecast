@@ -162,6 +162,8 @@ export function createDeepSeekProvider(options: {
   apiKey?: string;
   client?: ChatClient;
   model?: string;
+  temperature?: number;
+  maxTokens?: number;
 } = {}): AIProvider {
   const apiKey = options.apiKey ?? process.env.DEEPSEEK_API_KEY;
   if (!apiKey && !options.client) {
@@ -176,6 +178,8 @@ export function createDeepSeekProvider(options: {
     });
 
   const model = options.model ?? process.env.DEEPSEEK_MODEL ?? "deepseek-chat";
+  const temperature = options.temperature ?? 0.7;
+  const maxTokens = options.maxTokens ?? 4096;
 
   return {
     async generate({ fragments, systemPrompt }) {
@@ -189,7 +193,8 @@ export function createDeepSeekProvider(options: {
           { role: "user", content: buildUserMessage(fragments) }
         ],
         response_format: { type: "json_object" },
-        temperature: 0.1
+        temperature,
+        max_tokens: maxTokens,
       });
 
       const content = response.choices[0]?.message?.content;
@@ -219,7 +224,8 @@ export function createDeepSeekProvider(options: {
           { role: "user", content: userMessage }
         ],
         response_format: { type: "json_object" },
-        temperature: 0.1
+        temperature,
+        max_tokens: maxTokens,
       });
 
       const content = response.choices[0]?.message?.content;
@@ -236,6 +242,8 @@ export function createOpenAIProvider(options: {
   apiKey?: string;
   client?: ChatClient;
   model?: string;
+  temperature?: number;
+  maxTokens?: number;
 } = {}): AIProvider {
   const apiKey = options.apiKey ?? process.env.OPENAI_API_KEY;
   if (!apiKey && !options.client) {
@@ -244,6 +252,8 @@ export function createOpenAIProvider(options: {
 
   const client = options.client ?? new OpenAI({ apiKey });
   const model = options.model ?? process.env.OPENAI_MODEL ?? "gpt-5.4-mini";
+  const temperature = options.temperature ?? 0.7;
+  const maxTokens = options.maxTokens ?? 4096;
 
   return {
     async generate({ fragments, systemPrompt }) {
@@ -254,7 +264,8 @@ export function createOpenAIProvider(options: {
           { role: "user", content: buildUserMessage(fragments) }
         ],
         response_format: { type: "json_object" },
-        temperature: 0.1
+        temperature,
+        max_tokens: maxTokens,
       });
 
       const content = response.choices[0]?.message?.content;
@@ -283,7 +294,8 @@ export function createOpenAIProvider(options: {
           { role: "user", content: userMessage }
         ],
         response_format: { type: "json_object" },
-        temperature: 0.1
+        temperature,
+        max_tokens: maxTokens,
       });
 
       const content = response.choices[0]?.message?.content;
@@ -297,13 +309,89 @@ export function createOpenAIProvider(options: {
 }
 
 export function createAIProvider(
-  type?: "deepseek" | "openai"
+  type?: "deepseek" | "openai",
+  options?: { apiKey?: string; model?: string; temperature?: number; maxTokens?: number }
 ): AIProvider {
   const provider =
     type ?? (process.env.AI_PROVIDER as "deepseek" | "openai") ?? "deepseek";
 
   if (provider === "openai") {
-    return createOpenAIProvider();
+    return createOpenAIProvider(options);
   }
-  return createDeepSeekProvider();
+  return createDeepSeekProvider(options);
+}
+
+export type AISettingsStatus = {
+  configured: boolean;
+  provider: string;
+  hasApiKey: boolean;
+  model: string;
+  message: string;
+};
+
+export async function checkAISettings(): Promise<AISettingsStatus> {
+  try {
+    const { getSettings } = await import("@/server/settings/repository");
+    const settings = await getSettings();
+    const provider = settings.aiProvider;
+    const apiKey =
+      provider === "deepseek" ? settings.deepseekApiKey : settings.openaiApiKey;
+    const model =
+      provider === "deepseek" ? settings.deepseekModel : settings.openaiModel;
+
+    if (!apiKey) {
+      return {
+        configured: false,
+        provider,
+        hasApiKey: false,
+        model,
+        message: `请在 AI 模型设置中配置 ${provider === "deepseek" ? "DeepSeek" : "OpenAI"} API Key`,
+      };
+    }
+
+    return {
+      configured: true,
+      provider,
+      hasApiKey: true,
+      model,
+      message: "AI 配置完整",
+    };
+  } catch {
+    return {
+      configured: false,
+      provider: "unknown",
+      hasApiKey: false,
+      model: "",
+      message: "数据库未就绪，请稍后重试",
+    };
+  }
+}
+
+export async function getAIProvider(): Promise<AIProvider> {
+  const status = await checkAISettings();
+
+  if (!status.configured) {
+    throw new Error(status.message);
+  }
+
+  let apiKey: string | undefined;
+  let model: string | undefined;
+  let temperature: number | undefined;
+  let maxTokens: number | undefined;
+
+  const { getSettings } = await import("@/server/settings/repository");
+  const settings = await getSettings();
+  const type = settings.aiProvider as "deepseek" | "openai";
+
+  if (type === "deepseek") {
+    apiKey = settings.deepseekApiKey;
+    model = settings.deepseekModel;
+  } else {
+    apiKey = settings.openaiApiKey;
+    model = settings.openaiModel;
+  }
+  temperature = settings.temperature;
+  maxTokens = settings.maxTokens;
+
+  return createAIProvider(type, { apiKey, model, temperature, maxTokens });
 }

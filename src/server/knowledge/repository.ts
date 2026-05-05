@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, isNull } from "drizzle-orm";
 import { getDb } from "../db/client";
 import { knowledgeItems } from "../db/schema";
 
@@ -46,7 +46,7 @@ export async function createKnowledgeItem(input: {
 export async function updateKnowledgeItem(
   id: string,
   userId: string,
-  input: { title?: string | null; content?: string }
+  input: { title?: string | null; content?: string; workspaceId?: string | null }
 ) {
   const db = await getDb();
   const now = new Date();
@@ -54,6 +54,7 @@ export async function updateKnowledgeItem(
 
   if (input.title !== undefined) values.title = input.title;
   if (input.content !== undefined) values.content = input.content;
+  if (input.workspaceId !== undefined) values.workspace_id = input.workspaceId;
 
   await db
     .update(knowledgeItems)
@@ -157,6 +158,29 @@ export async function listRecentKnowledgeItems(
     .where(and(...conditions))
     .orderBy(desc(knowledgeItems.createdAt))
     .limit(limit)
+    .all();
+
+  return rows.map((row) => ({
+    id: row.id,
+    userId: row.userId,
+    workspaceId: row.workspaceId,
+    sourceType: row.sourceType,
+    title: row.title,
+    content: row.content,
+    originalUrl: row.originalUrl,
+    status: row.status,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt
+  }));
+}
+
+export async function listOrphanedKnowledgeItems(userId: string) {
+  const db = await getDb();
+  const rows = await db
+    .select()
+    .from(knowledgeItems)
+    .where(and(eq(knowledgeItems.userId, userId), isNull(knowledgeItems.workspaceId)))
+    .orderBy(desc(knowledgeItems.createdAt))
     .all();
 
   return rows.map((row) => ({

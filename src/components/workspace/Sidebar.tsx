@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 
 type Area = { id: string; name: string; userId: string };
 type Workspace = { id: string; name: string; areaId: string | null; userId: string };
@@ -27,6 +28,7 @@ export function Sidebar({
   onWorkspaceChange
 }: Props) {
   const router = useRouter();
+  const pathname = usePathname();
   const [areas, setAreas] = useState<Area[]>([]);
   const [workspaces, setWorkspaces] = useState<Record<string, Workspace[]>>({});
   const [collapsedAreas, setCollapsedAreas] = useState<Set<string>>(new Set());
@@ -181,8 +183,10 @@ export function Sidebar({
         [areaId]: [...(prev[areaId] ?? []), ws]
       }));
       onWorkspaceChange(ws);
+      emitWorkspaceChange(ws);
       setNewName("");
       setCreatingWs(null);
+      router.push(`/workspace/${ws.id}`);
     }
   }
 
@@ -235,6 +239,10 @@ export function Sidebar({
 
   function selectWorkspace(ws: Workspace) {
     onWorkspaceChange(ws);
+    if (ws.areaId) {
+      const area = areas.find((a) => a.id === ws.areaId);
+      if (area) onAreaChange(area);
+    }
     emitWorkspaceChange(ws);
     router.push(`/workspace/${ws.id}`);
   }
@@ -320,7 +328,7 @@ export function Sidebar({
               {!collapsed && (
                 <div className="ml-4 space-y-0.5">
                   {areaWs.map((ws) => {
-                    const active = activeWorkspaceId === ws.id;
+                    const active = activeWorkspaceId === ws.id && pathname !== "/workspace/orphaned";
                     const editing = editingId === ws.id;
                     return (
                       <div key={ws.id}
@@ -435,6 +443,24 @@ export function Sidebar({
             + 新建工作区
           </button>
         )}
+
+        {/* 未归类素材 */}
+        <div className="pt-3 mt-3 border-t border-gray-200">
+          <Link
+            href="/workspace/orphaned"
+            className={`flex items-center gap-1.5 w-full rounded-lg px-2 py-1.5 text-left text-sm transition ${
+              pathname === "/workspace/orphaned"
+                ? "bg-blue-50 text-blue-700 font-medium"
+                : "text-gray-500 hover:bg-gray-50 hover:text-gray-700"
+            }`}
+          >
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+            </svg>
+            未归类素材
+          </Link>
+        </div>
+
       </div>
     </aside>
   );
