@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { FrameworkPicker } from "@/components/workspace/FrameworkPicker";
@@ -49,6 +49,7 @@ export default function StructurePage() {
   const [message, setMessage] = useState("");
   const [previewSlidesJson, setPreviewSlidesJson] = useState<string | null>(null);
   const [hasManualEdits, setHasManualEdits] = useState(false);
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [frameworkSteps, setFrameworkSteps] = useState(0);
 
   const loadWorkspace = useCallback(() => {
@@ -181,8 +182,39 @@ export default function StructurePage() {
     }
   }
 
+  function handleSlidesChange(updatedSlides: Slide[]) {
+    if (!result) return;
+    setHasManualEdits(true);
+
+    const slidesJson = result.trainingPage.slidesJson;
+    if (!slidesJson) return;
+    const parsed = JSON.parse(slidesJson);
+    const updated = { ...parsed, slides: updatedSlides };
+    const newSlidesJson = JSON.stringify(updated);
+
+    // Update local state immediately
+    setResult({
+      ...result,
+      trainingPage: { ...result.trainingPage, slidesJson: newSlidesJson }
+    });
+
+    // Debounce save to server
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(async () => {
+      await fetch(`/api/training-pages/${result.trainingPage.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, slidesJson: newSlidesJson })
+      });
+    }, 500);
+  }
+
   const slidesJson = previewSlidesJson ?? result?.trainingPage.slidesJson;
   const slides: Slide[] = slidesJson ? JSON.parse(slidesJson).slides : [];
+
+  useEffect(() => {
+    return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
+  }, []);
 
   return (
     <main className="px-8 py-8">
@@ -245,7 +277,8 @@ export default function StructurePage() {
               <CoverageBanner slides={slides} frameworkSteps={frameworkSteps} materialCount={fragments.length} />
             )}
             <SlidePreview slides={slides} title={result?.trainingPage.title ?? ""} totalMinutes={result?.trainingPage.totalMinutes ?? 0}
-              shareUrl={result?.shareLink ? `/share/${result.shareLink.token}` : ""} />
+              shareUrl={result?.shareLink ? `/share/${result.shareLink.token}` : ""} editingEnabled={true}
+              onSlidesChange={handleSlidesChange} />
           </section>
         </div>
       ) : <div className="rounded-xl border border-dashed border-gray-300 bg-white p-12 text-center"><p className="text-sm text-gray-400">加载中...</p></div>}
