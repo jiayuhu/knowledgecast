@@ -5,15 +5,13 @@ type Props = {
   onInstructionChange: (value: string) => void;
   onSubmit: () => void;
   loading: boolean;
-  version: number;
 };
 
 export function IterationPanel({
   instruction,
   onInstructionChange,
   onSubmit,
-  loading,
-  version
+  loading
 }: Props) {
   function handleKeyDown(e: React.KeyboardEvent) {
     if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
@@ -28,7 +26,6 @@ export function IterationPanel({
         <h2 className="text-sm font-medium uppercase tracking-wide text-gray-500">
           调整内容
         </h2>
-        <span className="text-xs text-gray-400">版本 {version}</span>
       </div>
 
       <p className="mt-2 text-xs text-gray-400">

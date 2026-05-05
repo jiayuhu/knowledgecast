@@ -6,6 +6,7 @@ import Link from "next/link";
 import { FrameworkPicker } from "@/components/workspace/FrameworkPicker";
 import { SlidePreview } from "@/components/workspace/SlidePreview";
 import { IterationPanel } from "@/components/workspace/IterationPanel";
+import { VersionBar } from "@/components/workspace/VersionBar";
 
 type Workspace = { id: string; name: string; areaId: string | null; userId: string; topic?: string | null };
 type Fragment = { id: string; sourceType: string; title: string | null; content: string; status: string };
@@ -45,6 +46,9 @@ export default function StructurePage() {
   const [iterating, setIterating] = useState(false);
   const [result, setResult] = useState<TrainingResult | null>(null);
   const [message, setMessage] = useState("");
+  const [previewSlidesJson, setPreviewSlidesJson] = useState<string | null>(null);
+  const [restoringVersion, setRestoringVersion] = useState(false);
+  const [hasManualEdits, setHasManualEdits] = useState(false);
 
   const loadWorkspace = useCallback(() => {
     Promise.all([
@@ -131,7 +135,43 @@ export default function StructurePage() {
     finally { setIterating(false); }
   }
 
-  const slides: Slide[] = result?.trainingPage.slidesJson ? JSON.parse(result.trainingPage.slidesJson).slides : [];
+  async function handleRestore(restoreSlidesJson: string, targetVersion: number) {
+    if (!result) return;
+    setRestoringVersion(true);
+    try {
+      const parsed = JSON.parse(restoreSlidesJson);
+      const res = await fetch(`/api/training-pages/${result.trainingPage.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId,
+          slidesJson: restoreSlidesJson,
+          title: parsed.title,
+          totalMinutes: parsed.totalMinutes,
+          version: (result.trainingPage.version ?? 1) + 1,
+          restoreInstruction: `恢复到 v${targetVersion}`,
+          preRestoreVersion: result.trainingPage.version ?? 1,
+          preRestoreSlidesJson: result.trainingPage.slidesJson
+        })
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error((body as { error?: string }).error ?? "恢复失败");
+      }
+      const updated = await res.json() as TrainingResult;
+      setResult(updated);
+      setPreviewSlidesJson(null);
+      setHasManualEdits(false);
+      setMessage("已恢复");
+    } catch (e) {
+      setMessage(e instanceof Error ? e.message : "恢复失败");
+    } finally {
+      setRestoringVersion(false);
+    }
+  }
+
+  const slidesJson = previewSlidesJson ?? result?.trainingPage.slidesJson;
+  const slides: Slide[] = slidesJson ? JSON.parse(slidesJson).slides : [];
 
   return (
     <main className="px-8 py-8">
@@ -175,8 +215,18 @@ export default function StructurePage() {
                     : "bg-gray-100 text-gray-600"
               }`}>{message}</p>
             )}
+            {result && (
+              <VersionBar
+                currentVersion={result.trainingPage.version ?? 1}
+                trainingPageId={result.trainingPage.id}
+                currentSlidesJson={result.trainingPage.slidesJson}
+                onVersionSelect={(json, _version) => setPreviewSlidesJson(json)}
+                onRestore={handleRestore}
+                hasManualEdits={hasManualEdits}
+              />
+            )}
             {result?.shareLink && <ShareLinkCard token={result.shareLink.token} />}
-            {result && <IterationPanel instruction={instruction} onInstructionChange={setInstruction} onSubmit={handleIterate} loading={iterating} version={result.trainingPage.version ?? 1} />}
+            {result && <IterationPanel instruction={instruction} onInstructionChange={setInstruction} onSubmit={handleIterate} loading={iterating} />}
           </aside>
           <section>
             <SlidePreview slides={slides} title={result?.trainingPage.title ?? ""} totalMinutes={result?.trainingPage.totalMinutes ?? 0}
