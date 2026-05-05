@@ -14,6 +14,12 @@ export async function PATCH(
       return NextResponse.json({ error: "userId 必填" }, { status: 400 });
     }
 
+    const hasUpdateFields = slidesJson !== undefined || title !== undefined || totalMinutes !== undefined || version !== undefined;
+    const isRestore = !!(restoreInstruction && preRestoreVersion && preRestoreSlidesJson);
+    if (!hasUpdateFields && !isRestore) {
+      return NextResponse.json({ error: "没有提供需要更新的字段" }, { status: 400 });
+    }
+
     // On restore, save the current state as a snapshot so user can undo
     if (restoreInstruction && preRestoreVersion && preRestoreSlidesJson) {
       await saveVersionSnapshot({
@@ -24,13 +30,20 @@ export async function PATCH(
       });
     }
 
-    const updated = await updateTrainingPage(id, {
+    const updateFields: Record<string, unknown> = {
       title: title ?? undefined,
       slidesJson: slidesJson ?? undefined,
       totalMinutes: totalMinutes ?? undefined,
       version: version ?? undefined,
-      status: "ready"
-    });
+    };
+    if (isRestore) {
+      updateFields.status = "ready";
+    }
+    const updated = await updateTrainingPage(id, updateFields as Parameters<typeof updateTrainingPage>[1]);
+
+    if (updated.userId !== userId) {
+      return NextResponse.json({ error: "无权修改此培训页" }, { status: 403 });
+    }
 
     // Save the restored version itself as a snapshot
     if (restoreInstruction && version) {
