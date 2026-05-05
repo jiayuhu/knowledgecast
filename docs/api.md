@@ -229,6 +229,34 @@ AI 生成培训幻灯片。
 
 **返回** `{ trainingPage, shareLink }`
 
+### `GET /api/training-pages/[id]/versions`
+
+获取培训页的版本历史列表。
+
+**返回** `{ versions: { id: string; version: number; instruction: string; createdAt: number }[] }`
+
+### `GET /api/training-pages/[id]/versions/[versionId]`
+
+获取单个版本的完整快照。
+
+**返回** `{ id: string; slidesJson: string; version: number; instruction: string; createdAt: number }`
+
+### `PATCH /api/training-pages/[id]`
+
+更新培训页的幻灯片内容。用于版本恢复和手动编辑保存。
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| id | path | 是 | 培训页 ID |
+| userId | body | 是 | |
+| slidesJson | body | 否 | 更新后的幻灯片 JSON |
+| title | body | 否 | |
+| totalMinutes | body | 否 | |
+| version | body | 否 | |
+| restoreInstruction | body | 否 | 恢复操作时传入「恢复到 vX」，会写入版本历史 |
+| preRestoreVersion | body | 否 | 恢复前的版本号，用于保存恢复前快照 |
+| preRestoreSlidesJson | body | 否 | 恢复前的幻灯片 JSON，用于保存恢复前快照 |
+
 ---
 
 ## 框架
