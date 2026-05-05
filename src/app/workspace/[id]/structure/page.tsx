@@ -47,7 +47,6 @@ export default function StructurePage() {
   const [result, setResult] = useState<TrainingResult | null>(null);
   const [message, setMessage] = useState("");
   const [previewSlidesJson, setPreviewSlidesJson] = useState<string | null>(null);
-  const [restoringVersion, setRestoringVersion] = useState(false);
   const [hasManualEdits, setHasManualEdits] = useState(false);
 
   const loadWorkspace = useCallback(() => {
@@ -137,7 +136,6 @@ export default function StructurePage() {
 
   async function handleRestore(restoreSlidesJson: string, targetVersion: number) {
     if (!result) return;
-    setRestoringVersion(true);
     try {
       const parsed = JSON.parse(restoreSlidesJson);
       const res = await fetch(`/api/training-pages/${result.trainingPage.id}`, {
@@ -166,7 +164,6 @@ export default function StructurePage() {
     } catch (e) {
       setMessage(e instanceof Error ? e.message : "恢复失败");
     } finally {
-      setRestoringVersion(false);
     }
   }
 

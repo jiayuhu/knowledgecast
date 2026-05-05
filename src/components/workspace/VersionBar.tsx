@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 type VersionSummary = {
   id: string;
@@ -30,12 +30,13 @@ export function VersionBar({
   const [versions, setVersions] = useState<VersionSummary[]>([]);
   const [viewingVersion, setViewingVersion] = useState<number | null>(null);
   const [restoring, setRestoring] = useState(false);
+  const slidesJsonCache = useRef<Map<string, string>>(new Map());
 
   useEffect(() => {
     fetch(`/api/training-pages/${trainingPageId}/versions`)
       .then(r => r.json())
       .then(data => setVersions(data.versions ?? []))
-      .catch(() => {});
+      .catch((err) => console.error("Failed to load versions:", err));
   }, [trainingPageId]);
 
   const totalVersions = versions.length;
@@ -45,9 +46,12 @@ export function VersionBar({
     fetch(`/api/training-pages/${trainingPageId}/versions/${v.id}`)
       .then(r => r.json())
       .then(data => {
-        if (data.slidesJson) onVersionSelect(data.slidesJson, v.version);
+        if (data.slidesJson) {
+          slidesJsonCache.current.set(v.id, data.slidesJson);
+          onVersionSelect(data.slidesJson, v.version);
+        }
       })
-      .catch(() => {});
+      .catch((err) => console.error("Failed to load version snapshot:", err));
   }
 
   function handleBackToCurrent() {
@@ -73,11 +77,19 @@ export function VersionBar({
     const v = versions.find(v => v.version === viewingVersion);
     if (!v) return;
     try {
+      const cached = slidesJsonCache.current.get(v.id);
+      if (cached) {
+        onRestore(cached, viewingVersion);
+        return;
+      }
       const res = await fetch(`/api/training-pages/${trainingPageId}/versions/${v.id}`);
       const data = await res.json();
       if (data.slidesJson) {
+        slidesJsonCache.current.set(v.id, data.slidesJson);
         onRestore(data.slidesJson, viewingVersion);
       }
+    } catch (err) {
+      console.error("Failed to restore version:", err);
     } finally {
       setRestoring(false);
     }
