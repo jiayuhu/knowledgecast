@@ -14,11 +14,40 @@ type Props = {
   title: string;
   totalMinutes: number;
   shareUrl: string;
+  editingEnabled?: boolean;
+  onSlidesChange?: (slides: Slide[]) => void;
 };
 
-export function SlidePreview({ slides, title, totalMinutes, shareUrl }: Props) {
+export function SlidePreview({ slides, title, totalMinutes, shareUrl, editingEnabled, onSlidesChange }: Props) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showNotes, setShowNotes] = useState(true);
+  const [editingField, setEditingField] = useState<string | null>(null);
+
+  function updateSlide(field: string, value: unknown) {
+    if (!onSlidesChange) return;
+    const updated = slides.map((s, i) => {
+      if (i !== currentIndex) return s;
+      return { ...s, [field]: value };
+    });
+    onSlidesChange(updated);
+  }
+
+  function updateBullet(bulletIndex: number, value: string) {
+    if (!onSlidesChange) return;
+    const updatedBullets = slide.bullets.map((b, i) => i === bulletIndex ? value : b);
+    updateSlide("bullets", updatedBullets);
+  }
+
+  function addBullet() {
+    if (!onSlidesChange) return;
+    updateSlide("bullets", [...slide.bullets, ""]);
+  }
+
+  function deleteBullet(bulletIndex: number) {
+    if (!onSlidesChange || slide.bullets.length <= 1) return;
+    const updatedBullets = slide.bullets.filter((_, i) => i !== bulletIndex);
+    updateSlide("bullets", updatedBullets);
+  }
 
   if (slides.length === 0) {
     return (
@@ -101,16 +130,65 @@ export function SlidePreview({ slides, title, totalMinutes, shareUrl }: Props) {
           <span className="text-xs text-gray-400">~{slide.estimatedMinutes} 分钟</span>
         </div>
 
-        <h3 className="text-xl font-bold text-gray-900">{slide.title}</h3>
+        {editingEnabled && editingField === `title-${currentIndex}` ? (
+          <input
+            autoFocus
+            value={slide.title}
+            onChange={(e) => updateSlide("title", e.target.value)}
+            onBlur={() => setEditingField(null)}
+            onKeyDown={(e) => { if (e.key === "Enter") setEditingField(null); }}
+            className="w-full text-xl font-bold text-gray-900 bg-transparent border-b-2 border-blue-400 outline-none pb-0.5"
+          />
+        ) : (
+          <h3
+            onClick={() => editingEnabled && setEditingField(`title-${currentIndex}`)}
+            className={`text-xl font-bold text-gray-900 ${editingEnabled ? "cursor-pointer hover:text-blue-600 transition" : ""}`}
+          >
+            {slide.title}
+          </h3>
+        )}
 
         <ul className="mt-6 space-y-3">
           {slide.bullets.map((bullet, i) => (
-            <li key={i} className="flex items-start gap-3 text-sm text-gray-700">
+            <li key={i} className="flex items-start gap-3 text-sm text-gray-700 group">
               <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-blue-600" />
-              {bullet}
+              {editingEnabled && editingField === `bullet-${currentIndex}-${i}` ? (
+                <input
+                  autoFocus
+                  value={bullet}
+                  onChange={(e) => updateBullet(i, e.target.value)}
+                  onBlur={() => setEditingField(null)}
+                  onKeyDown={(e) => { if (e.key === "Enter") setEditingField(null); }}
+                  className="flex-1 bg-transparent border-b border-blue-300 outline-none text-sm"
+                />
+              ) : (
+                <span
+                  onClick={() => editingEnabled && setEditingField(`bullet-${currentIndex}-${i}`)}
+                  className={`flex-1 ${editingEnabled ? "cursor-text hover:bg-gray-50 rounded px-1 -mx-1" : ""}`}
+                >
+                  {bullet}
+                </span>
+              )}
+              {editingEnabled && (
+                <button
+                  onClick={() => deleteBullet(i)}
+                  className="shrink-0 opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-600 text-xs transition"
+                  title="删除要点"
+                >
+                  ✕
+                </button>
+              )}
             </li>
           ))}
         </ul>
+        {editingEnabled && (
+          <button
+            onClick={addBullet}
+            className="mt-2 ml-5 text-xs text-gray-400 hover:text-blue-600 transition"
+          >
+            + 添加要点
+          </button>
+        )}
 
         {showNotes && slide.speakerNotes && (
           <div className="mt-8 rounded-lg border border-dashed border-amber-200 bg-amber-50 p-4">
@@ -119,7 +197,24 @@ export function SlidePreview({ slides, title, totalMinutes, shareUrl }: Props) {
                 讲者备注
               </span>
             </div>
-            <p className="text-sm leading-relaxed text-amber-900">{slide.speakerNotes}</p>
+            {editingEnabled && editingField === `notes-${currentIndex}` ? (
+              <textarea
+                autoFocus
+                value={slide.speakerNotes}
+                onChange={(e) => updateSlide("speakerNotes", e.target.value)}
+                onBlur={() => setEditingField(null)}
+                onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); setEditingField(null); } }}
+                rows={3}
+                className="w-full text-sm leading-relaxed bg-transparent border border-amber-300 rounded-md p-2 outline-none focus:ring-1 focus:ring-amber-200 resize-none"
+              />
+            ) : (
+              <p
+                onClick={() => editingEnabled && setEditingField(`notes-${currentIndex}`)}
+                className={`text-sm leading-relaxed text-amber-900 ${editingEnabled ? "cursor-text hover:bg-amber-100 rounded px-1 -mx-1 transition" : ""}`}
+              >
+                {slide.speakerNotes}
+              </p>
+            )}
           </div>
         )}
       </div>
@@ -133,7 +228,7 @@ export function SlidePreview({ slides, title, totalMinutes, shareUrl }: Props) {
           {slides.map((s, i) => (
             <button
               key={i}
-              onClick={() => setCurrentIndex(i)}
+              onClick={() => { setCurrentIndex(i); setEditingField(null); }}
               className={`rounded-lg border p-3 text-left transition ${
                 i === currentIndex
                   ? "border-blue-300 bg-blue-50"
