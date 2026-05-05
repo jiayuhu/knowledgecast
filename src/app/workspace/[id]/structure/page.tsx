@@ -95,7 +95,10 @@ export default function StructurePage() {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId, knowledgeItemIds: selectedIds, frameworkId, topic: workspaceTopic || undefined })
       });
-      if (!res.ok) throw new Error("生成失败");
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error((body as { error?: string }).error ?? "生成失败");
+      }
       setResult(await res.json() as TrainingResult);
       setMessage("生成成功");
     } catch (e) { setMessage(e instanceof Error ? e.message : "生成失败"); }
@@ -110,7 +113,10 @@ export default function StructurePage() {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId, knowledgeItemIds: selectedIds, frameworkId, instruction: instruction.trim() })
       });
-      if (!res.ok) throw new Error("调整失败");
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error((body as { error?: string }).error ?? "调整失败");
+      }
       setResult(await res.json() as TrainingResult);
       setInstruction(""); setMessage("调整完成");
     } catch (e) { setMessage(e instanceof Error ? e.message : "调整失败"); }

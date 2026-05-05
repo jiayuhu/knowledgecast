@@ -47,7 +47,10 @@ async function createUrlItem(
       enrich: true  // 提取 URL：获取正文 + 图片
     })
   });
-  if (!res.ok) throw new Error("创建失败");
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error((body as { error?: string }).error ?? "创建失败");
+  }
   const data = await res.json();
   return { id: data.item.id, title: data.item.title ?? null, content: data.item.content ?? url };
 }
@@ -58,7 +61,10 @@ async function generateTitle(content: string): Promise<string> {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ content })
   });
-  if (!res.ok) throw new Error("标题生成失败");
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error((body as { error?: string }).error ?? "标题生成失败");
+  }
   const data = await res.json();
   return data.title;
 }
@@ -107,7 +113,10 @@ export function CaptureInput({ userId, workspaceId, onDone }: Props) {
         })
       });
 
-      if (!response.ok) throw new Error("捕获失败");
+      if (!response.ok) {
+        const errBody = await response.json().catch(() => ({}));
+        throw new Error((errBody as { error?: string }).error ?? "捕获失败");
+      }
 
       const data = await response.json();
       const itemId = data.item?.id as string;

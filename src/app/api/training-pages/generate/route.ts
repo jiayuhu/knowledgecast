@@ -13,22 +13,27 @@ const generateSlidesSchema = z.object({
 });
 
 export async function POST(request: Request) {
-  const payload = generateSlidesSchema.parse(await request.json());
-  const provider = await getAIProvider();
-  const result = await generateTrainingSlides(
-    {
-      userId: payload.userId,
-      knowledgeItemIds: payload.knowledgeItemIds ?? [],
-      frameworkId: payload.frameworkId,
-      topic: payload.topic,
-      instruction: payload.instruction,
-      previousPageId: payload.previousPageId
-    },
-    provider
-  );
+  try {
+    const payload = generateSlidesSchema.parse(await request.json());
+    const provider = await getAIProvider();
+    const result = await generateTrainingSlides(
+      {
+        userId: payload.userId,
+        knowledgeItemIds: payload.knowledgeItemIds ?? [],
+        frameworkId: payload.frameworkId,
+        topic: payload.topic,
+        instruction: payload.instruction,
+        previousPageId: payload.previousPageId
+      },
+      provider
+    );
 
-  return NextResponse.json({
-    trainingPage: result.trainingPage,
-    shareLink: result.shareLink
-  });
+    return NextResponse.json({
+      trainingPage: result.trainingPage,
+      shareLink: result.shareLink
+    });
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "生成失败";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
 }

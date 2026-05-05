@@ -45,15 +45,20 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const payload = createKnowledgeItemSchema.parse(await request.json());
-  const item = await storeKnowledgeInput({
-    userId: payload.userId,
-    workspaceId: payload.workspaceId,
-    sourceType: payload.sourceType,
-    title: payload.title,
-    content: payload.content,
-    enrich: payload.enrich
-  });
+  try {
+    const payload = createKnowledgeItemSchema.parse(await request.json());
+    const item = await storeKnowledgeInput({
+      userId: payload.userId,
+      workspaceId: payload.workspaceId,
+      sourceType: payload.sourceType,
+      title: payload.title,
+      content: payload.content,
+      enrich: payload.enrich
+    });
 
-  return NextResponse.json({ item });
+    return NextResponse.json({ item });
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "捕获失败";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
 }

@@ -14,23 +14,28 @@ export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id } = await params;
-  const payload = iterateSchema.parse(await request.json());
+  try {
+    const { id } = await params;
+    const payload = iterateSchema.parse(await request.json());
 
-  const provider = await getAIProvider();
-  const result = await generateTrainingSlides(
-    {
-      userId: payload.userId,
-      knowledgeItemIds: payload.knowledgeItemIds,
-      frameworkId: payload.frameworkId,
-      instruction: payload.instruction,
-      previousPageId: id
-    },
-    provider
-  );
+    const provider = await getAIProvider();
+    const result = await generateTrainingSlides(
+      {
+        userId: payload.userId,
+        knowledgeItemIds: payload.knowledgeItemIds,
+        frameworkId: payload.frameworkId,
+        instruction: payload.instruction,
+        previousPageId: id
+      },
+      provider
+    );
 
-  return NextResponse.json({
-    trainingPage: result.trainingPage,
-    shareLink: result.shareLink
-  });
+    return NextResponse.json({
+      trainingPage: result.trainingPage,
+      shareLink: result.shareLink
+    });
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "调整失败";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
 }
