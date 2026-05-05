@@ -7,6 +7,7 @@ import { FrameworkPicker } from "@/components/workspace/FrameworkPicker";
 import { SlidePreview } from "@/components/workspace/SlidePreview";
 import { IterationPanel } from "@/components/workspace/IterationPanel";
 import { VersionBar } from "@/components/workspace/VersionBar";
+import { CoverageBanner } from "@/components/workspace/CoverageBanner";
 
 type Workspace = { id: string; name: string; areaId: string | null; userId: string; topic?: string | null };
 type Fragment = { id: string; sourceType: string; title: string | null; content: string; status: string };
@@ -48,6 +49,7 @@ export default function StructurePage() {
   const [message, setMessage] = useState("");
   const [previewSlidesJson, setPreviewSlidesJson] = useState<string | null>(null);
   const [hasManualEdits, setHasManualEdits] = useState(false);
+  const [frameworkSteps, setFrameworkSteps] = useState(0);
 
   const loadWorkspace = useCallback(() => {
     Promise.all([
@@ -95,6 +97,18 @@ export default function StructurePage() {
       })
       .catch(() => setMessage("加载素材失败"));
   }, [workspace]);
+
+  useEffect(() => {
+    if (!frameworkId) { setFrameworkSteps(0); return; }
+    fetch(`/api/frameworks?userId=demo-user`)
+      .then(r => r.json())
+      .then(data => {
+        const fws = (data.frameworks ?? []) as Array<{ id: string; structure: string[] }>;
+        const fw = fws.find(f => f.id === frameworkId);
+        setFrameworkSteps(fw?.structure.length ?? 0);
+      })
+      .catch(() => {});
+  }, [frameworkId]);
 
   function toggleFragment(fid: string) { setSelectedIds((prev) => prev.includes(fid) ? prev.filter((i) => i !== fid) : [...prev, fid]); }
 
@@ -200,6 +214,7 @@ export default function StructurePage() {
                 ))}
               </div>
             </div>
+            <CoverageBanner slides={[]} frameworkSteps={frameworkSteps} materialCount={fragments.length} />
             <button onClick={handleGenerate} disabled={generating || !frameworkId} className="w-full rounded-lg bg-blue-600 px-4 py-3 text-sm font-medium text-white transition hover:bg-blue-700 disabled:opacity-50">
               {generating ? "AI 生成中..." : "生成培训幻灯片"}
             </button>
@@ -226,6 +241,9 @@ export default function StructurePage() {
             {result && <IterationPanel instruction={instruction} onInstructionChange={setInstruction} onSubmit={handleIterate} loading={iterating} />}
           </aside>
           <section>
+            {slides.length > 0 && (
+              <CoverageBanner slides={slides} frameworkSteps={frameworkSteps} materialCount={fragments.length} />
+            )}
             <SlidePreview slides={slides} title={result?.trainingPage.title ?? ""} totalMinutes={result?.trainingPage.totalMinutes ?? 0}
               shareUrl={result?.shareLink ? `/share/${result.shareLink.token}` : ""} />
           </section>
