@@ -90,7 +90,7 @@ export function SlidePreview({ slides, title, totalMinutes, shareUrl, editingEna
       {/* Slide navigation */}
       <div className="flex items-center gap-2">
         <button
-          onClick={() => setCurrentIndex(Math.max(0, currentIndex - 1))}
+          onClick={() => { setCurrentIndex(Math.max(0, currentIndex - 1)); setEditingField(null); }}
           disabled={currentIndex === 0}
           className="rounded-md border border-gray-200 px-3 py-1.5 text-sm text-gray-600 transition hover:bg-gray-50 disabled:opacity-40"
         >
@@ -100,9 +100,7 @@ export function SlidePreview({ slides, title, totalMinutes, shareUrl, editingEna
           {currentIndex + 1} / {slides.length}
         </span>
         <button
-          onClick={() =>
-            setCurrentIndex(Math.min(slides.length - 1, currentIndex + 1))
-          }
+          onClick={() => { setCurrentIndex(Math.min(slides.length - 1, currentIndex + 1)); setEditingField(null); }}
           disabled={currentIndex === slides.length - 1}
           className="rounded-md border border-gray-200 px-3 py-1.5 text-sm text-gray-600 transition hover:bg-gray-50 disabled:opacity-40"
         >
