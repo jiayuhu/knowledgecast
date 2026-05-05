@@ -16,18 +16,23 @@ export type WorkspaceRecord = {
 
 export async function createWorkspace(userId: string, name: string, areaId?: string) {
   const now = new Date();
+  const db = await getDb();
+
+  // 新建工作集排在末尾
+  const existing = await listWorkspaces(userId, areaId);
+  const maxOrder = existing.reduce((max, ws) => Math.max(max, ws.sortOrder ?? 0), -1);
+
   const record: WorkspaceRecord = {
     id: randomUUID(),
     userId,
     areaId: areaId ?? null,
     name,
     topic: null,
-    sortOrder: 0,
+    sortOrder: maxOrder + 1,
     createdAt: now,
     updatedAt: now
   };
 
-  const db = await getDb();
   await db.insert(workspaces).values(record).run();
   return record;
 }
