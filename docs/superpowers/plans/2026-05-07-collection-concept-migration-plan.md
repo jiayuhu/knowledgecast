@@ -4,7 +4,7 @@
 
 **Goal:** Rename the current workspace-level data concept to collection across schema, server APIs, frontend routes, UI state, tests, and docs.
 
-**Architecture:** Keep `areas` as the top-level “工作区” grouping and make `collections` the “工作集” entity. Migrate database names and TypeScript contracts to `collection`, move editor routes to `/collections/[id]`, and keep old `/workspace/*` URLs as redirects only.
+**Architecture:** Keep `areas` as the top-level “工作区” grouping and make `collections` the “工作集” entity. Migrate database names and TypeScript contracts to `collection`, move editor routes to `/collections/[id]`, and remove old `/workspace/*` routes and links without redirect compatibility.
 
 **Tech Stack:** Next.js App Router, TypeScript, Drizzle ORM, SQLite/libSQL, Vitest, ESLint.
 
@@ -40,7 +40,6 @@ Modify:
 - `src/components/workspace/Sidebar.tsx` — collection state, `/api/collections`, `/collections/[id]`, `/unassigned`.
 - `src/components/workspace/CaptureInput.tsx` — `collectionId` prop and API body.
 - `src/components/workspace/FragmentList.tsx` — `collectionId` query.
-- `next.config.ts` — redirects from old `/workspace/*` URLs.
 - Existing server tests — update imports and expected property names.
 - `README.md`, `docs/prd.md`, `docs/api.md`, `docs/superpowers/specs/2026-04-25-knowledgecast-design.md`, `AGENTS.md` — documentation sync.
 
@@ -515,7 +514,7 @@ src/app/api/workspaces/route.ts
 src/app/api/workspaces/[id]/route.ts
 ```
 
-The old frontend path compatibility is handled by redirects in `next.config.ts`, not by keeping `/api/workspaces`.
+No compatibility route is kept for `/api/workspaces`; all API callers must use `/api/collections`.
 
 - [ ] **Step 6: Run focused API-adjacent tests**
 
@@ -574,7 +573,7 @@ git mv src/components/workspace/WorkspaceLayout.tsx src/components/workspace/Col
 git mv src/components/workspace/WorkspaceNav.tsx src/components/workspace/CollectionNav.tsx
 ```
 
-Delete the obsolete redirect-helper pages under `src/app/workspace/capture`, `src/app/workspace/structure`, `src/app/workspace/share`, and `src/app/workspace/settings` after root redirects are configured.
+Delete the obsolete helper pages under `src/app/workspace/capture`, `src/app/workspace/structure`, `src/app/workspace/share`, and `src/app/workspace/settings`. No `/workspace/*` route files should remain.
 
 - [ ] **Step 2: Update collection layout imports**
 
@@ -785,7 +784,7 @@ If `/collections/capture` is not retained as a helper route, redirect to `/unass
 
 - [ ] **Step 8: Remove old workspace route files**
 
-Delete remaining files under `src/app/workspace`. Route compatibility will be handled by `next.config.ts`.
+Delete remaining files under `src/app/workspace`. Do not add redirect routes or rewrite rules for `/workspace/*`.
 
 - [ ] **Step 9: Run type check**
 
@@ -807,43 +806,26 @@ git commit -m "refactor: move editor routes to collections"
 
 ---
 
-## Task 4: Redirects and Documentation
+## Task 4: Documentation and Current-Link Cleanup
 
 **Files:**
-- Modify: `next.config.ts`
 - Modify: `README.md`
 - Modify: `docs/prd.md`
 - Modify: `docs/api.md`
 - Modify: `docs/superpowers/specs/2026-04-25-knowledgecast-design.md`
 - Modify: `AGENTS.md`
 
-- [ ] **Step 1: Add old URL redirects**
+- [ ] **Step 1: Confirm no old route compatibility is configured**
 
-In `next.config.ts`, add redirects alongside existing `headers()`:
+Inspect `next.config.ts` and do not add `redirects()` for `/workspace/*`. If a previous implementation attempt added such redirects, remove them.
 
-```ts
-async redirects() {
-  return [
-    {
-      source: "/workspace/orphaned",
-      destination: "/unassigned",
-      permanent: false
-    },
-    {
-      source: "/workspace/:id",
-      destination: "/collections/:id",
-      permanent: false
-    },
-    {
-      source: "/workspace/:id/:path*",
-      destination: "/collections/:id/:path*",
-      permanent: false
-    }
-  ];
-},
+Run:
+
+```bash
+rg "/workspace" next.config.ts
 ```
 
-Keep `permanent: false` during MVP so old route behavior can be changed without browser caching issues.
+Expected: no output.
 
 - [ ] **Step 2: Update docs/api.md**
 
@@ -886,6 +868,8 @@ In `docs/superpowers/specs/2026-04-25-knowledgecast-design.md`, replace route re
 /workspace/orphaned -> /unassigned
 ```
 
+Do not document `/workspace/*` as a supported legacy route.
+
 Update data model sentence to:
 
 ```text
@@ -923,12 +907,12 @@ Run:
 rg "workspaceId|workspace_id|/api/workspaces|/workspace/|from \"@/server/workspace|workspaces" src tests README.md docs/api.md docs/prd.md docs/superpowers/specs/2026-04-25-knowledgecast-design.md AGENTS.md
 ```
 
-Expected: only intentional old-route redirect documentation and historical plan/spec files outside the checked current docs remain. Current code under `src` and current API docs must not use `workspaceId`, `workspace_id`, `/api/workspaces`, or `@/server/workspace`.
+Expected: no output from current code or current docs. Historical plans/specs outside the checked current docs may still mention the old names, but `src`, `tests`, `README.md`, `docs/api.md`, `docs/prd.md`, current design spec, and `AGENTS.md` must not use current-link `/workspace/*`, `workspaceId`, `workspace_id`, `/api/workspaces`, or `@/server/workspace`.
 
 - [ ] **Step 6: Commit**
 
 ```bash
-git add next.config.ts README.md docs/prd.md docs/api.md docs/superpowers/specs/2026-04-25-knowledgecast-design.md AGENTS.md
+git add README.md docs/prd.md docs/api.md docs/superpowers/specs/2026-04-25-knowledgecast-design.md AGENTS.md
 git commit -m "docs: document collection routing and API"
 ```
 
@@ -977,7 +961,7 @@ Run:
 npm run build
 ```
 
-Expected: PASS. Redirect configuration should compile.
+Expected: PASS.
 
 - [ ] **Step 5: Final stale-name scan**
 
@@ -995,7 +979,7 @@ Run:
 rg "/workspace" src next.config.ts docs/api.md README.md AGENTS.md
 ```
 
-Expected: only `next.config.ts` redirect sources and any explicit docs note about legacy redirect.
+Expected: no output.
 
 - [ ] **Step 6: Commit verification fixes if needed**
 
@@ -1017,7 +1001,7 @@ Spec coverage:
 - Data table and field rename: Task 1.
 - API rename and `collectionId`: Task 2.
 - Frontend route migration to `/collections/[id]`: Task 3.
-- `/unassigned` route and old URL redirects: Tasks 3 and 4.
+- `/unassigned` route and removal of old URL links/routes: Tasks 3 and 4.
 - Component/localStorage state rename: Task 3.
 - Documentation updates: Task 4.
 - Verification: Task 5.

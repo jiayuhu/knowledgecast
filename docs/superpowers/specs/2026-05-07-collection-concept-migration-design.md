@@ -44,7 +44,7 @@
 
 - URL：`/unassigned`
 - UI 文案：“未归类素材”
-- 旧 URL `/workspace/orphaned` redirect 到 `/unassigned`
+- 不保留旧 URL `/workspace/orphaned`
 
 ## 3. 数据模型
 
@@ -114,9 +114,9 @@
 
 旧参数 `workspaceId` 不作为公开契约继续支持。若前端迁移后仍传旧参数，应视为测试应捕获的错误。
 
-### 4.3 旧 API 兼容
+### 4.3 旧 API
 
-后台内部 API 不需要长期兼容 `/api/workspaces`。本次迁移删除旧路由或改为临时 redirect 均可，推荐删除旧路由，让测试覆盖所有调用点已切换到 `/api/collections`。
+后台内部 API 不兼容 `/api/workspaces`。本次迁移删除旧路由，让测试覆盖所有调用点已切换到 `/api/collections`。
 
 ## 5. 前端路由
 
@@ -132,16 +132,16 @@
 
 这些页面语义不变，只是参数名从 `workspace id` 改为 `collection id`。
 
-### 5.2 旧 URL 兼容
+### 5.2 旧 URL
 
-保留旧 URL redirect，避免浏览器历史、收藏夹或内部旧入口直接失效：
+不保留 `/workspace/*` 旧 URL redirect。实现时一次性移除旧路由目录，并将当前代码、导航、文档中的链接全部改为新 URL：
 
-- `/workspace/[id]` -> `/collections/[id]`
-- `/workspace/[id]/capture` -> `/collections/[id]/capture`
-- `/workspace/[id]/structure` -> `/collections/[id]/structure`
-- `/workspace/[id]/publish` -> `/collections/[id]/publish`
-- `/workspace/[id]/settings` -> `/collections/[id]/settings`
-- `/workspace/orphaned` -> `/unassigned`
+- `/collections/[id]`
+- `/collections/[id]/capture`
+- `/collections/[id]/structure`
+- `/collections/[id]/publish`
+- `/collections/[id]/settings`
+- `/unassigned`
 
 ### 5.3 未归类素材
 
@@ -170,7 +170,7 @@ localStorage key 迁移：
 2. 素材创建和列表查询使用 `collectionId` / `collection_id`。
 3. `/api/collections` 返回 `collection` / `collections` 字段。
 4. 前端组件中的链接指向 `/collections/[id]`。
-5. 旧 `/workspace/[id]` 路由 redirect 到 `/collections/[id]`。
+5. 当前代码中不再存在 `/workspace/*` 路由或链接。
 
 不新增导出功能，不改变分享页 `/share/[token]`。
 
