@@ -108,6 +108,7 @@
 | 文档 | 路径 | 内容 |
 |------|------|------|
 | PRD | `docs/prd.md` | 产品需求、用户故事、场景 |
+| 任务页内容生产流程需求草案 | `docs/task-page-content-workflow-requirements.md` | 企业内部培训任务页闭环、MVP 边界 |
 | 设计 Spec | `docs/superpowers/specs/2026-04-25-knowledgecast-design.md` | 架构、交互、数据模型、UI 规范 |
 | API Doc | `docs/api.md` | 接口路径、参数、返回 |
 | ADR | `docs/adr.md` | 关键架构决策及理由 |

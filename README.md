@@ -93,6 +93,7 @@ npm run dev            # 启动时自动执行
 | 文档 | 路径 |
 |------|------|
 | PRD（产品需求） | `docs/prd.md` |
+| 任务页内容生产流程需求草案 | `docs/task-page-content-workflow-requirements.md` |
 | 设计 Spec | `docs/superpowers/specs/2026-04-25-knowledgecast-design.md` |
 | API 文档 | `docs/api.md` |
 | 架构决策记录 | `docs/adr.md` |
