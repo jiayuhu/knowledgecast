@@ -55,17 +55,18 @@ HTTP 状态码 `500`。前端会展示具体的错误消息，而非笼统的"�
 
 ## 工作集
 
-### `GET /api/workspaces`
+### `GET /api/collections`
 
 列出用户的所有工作集。首次访问自动创建默认工作集。
 
 | 参数 | 类型 | 必填 | 说明 |
 |------|------|------|------|
 | userId | query | 否 | 默认 `demo-user` |
+| areaId | query | 否 | 按工作区过滤 |
 
-**返回** `{ workspaces: Workspace[] }`
+**返回** `{ collections: Collection[] }`
 
-### `POST /api/workspaces`
+### `POST /api/collections`
 
 创建工作集。
 
@@ -75,9 +76,9 @@ HTTP 状态码 `500`。前端会展示具体的错误消息，而非笼统的"�
 | areaId | body | 否 | 所属工作区 ID |
 | name | body | 是 | 最大 50 字符 |
 
-**返回** `{ workspace: Workspace }`
+**返回** `{ collection: Collection }`
 
-### `PUT /api/workspaces`
+### `PUT /api/collections`
 
 重新排序工作集。
 
@@ -85,7 +86,9 @@ HTTP 状态码 `500`。前端会展示具体的错误消息，而非笼统的"�
 |------|------|------|------|
 | orderedIds | body | 是 | 排序后的 ID 数组 |
 
-### `PATCH /api/workspaces/[id]`
+**返回** `{ ok: true }`
+
+### `PATCH /api/collections/[id]`
 
 更新工作集名称、培训主题或所属工作区。
 
@@ -96,9 +99,13 @@ HTTP 状态码 `500`。前端会展示具体的错误消息，而非笼统的"�
 | topic | body | 否 | 培训主题描述，可传 null |
 | areaId | body | 否 | 切换到目标工作区 |
 
-### `DELETE /api/workspaces/[id]`
+**返回** `{ ok: true }`
 
-删除工作集。工作集下的素材不会删除，`workspaceId` 会被置空（脱离工作集），可在「未归类素材」中管理。
+### `DELETE /api/collections/[id]`
+
+删除工作集。工作集下的素材不会删除，`collectionId` 会被置空（脱离工作集），可在「未归类素材」中管理。
+
+**返回** `{ ok: true }`
 
 ---
 
@@ -110,7 +117,7 @@ HTTP 状态码 `500`。前端会展示具体的错误消息，而非笼统的"�
 |------|------|------|
 | id | string | UUID |
 | userId | string | 所属用户 |
-| workspaceId | string \| null | 所属工作集 |
+| collectionId | string \| null | 所属工作集 |
 | sourceType | string | `text` / `url` / `markdown` / `voice` |
 | title | string \| null | AI 生成或手动设置的标题 |
 | content | string | 正文内容 |
@@ -128,7 +135,7 @@ HTTP 状态码 `500`。前端会展示具体的错误消息，而非笼统的"�
 | 参数 | 类型 | 必填 | 说明 |
 |------|------|------|------|
 | userId | query | 是 | |
-| workspaceId | query | 否 | 按工作集过滤 |
+| collectionId | query | 否 | 按工作集过滤 |
 | orphaned | query | 否 | `true` 时列出脱离工作集的素材 |
 | limit | query | 否 | 默认 5，最大 200 |
 
@@ -141,7 +148,7 @@ HTTP 状态码 `500`。前端会展示具体的错误消息，而非笼统的"�
 | 参数 | 类型 | 必填 | 说明 |
 |------|------|------|------|
 | userId | body | 是 | |
-| workspaceId | body | 否 | |
+| collectionId | body | 否 | |
 | sourceType | body | 是 | `text` / `url` / `markdown` / `voice` |
 | title | body | 否 | |
 | content | body | 是 | URL 素材传入链接地址 |
@@ -164,7 +171,7 @@ HTTP 状态码 `500`。前端会展示具体的错误消息，而非笼统的"�
 | userId | body | 是 | |
 | title | body | 否 | |
 | content | body | 否 | |
-| workspaceId | body | 否 | 转移到目标工作集，可传 `null` 脱离 |
+| collectionId | body | 否 | 转移到目标工作集，可传 `null` 脱离 |
 
 ### `DELETE /api/knowledge-items/[id]`
 
@@ -329,11 +336,13 @@ AI 生成培训幻灯片。
 ## 数据类型
 
 ```typescript
-type Workspace = {
+type Collection = {
   id: string;
   userId: string;
+  areaId: string | null;
   name: string;
   topic: string | null;
+  sortOrder: number | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -341,7 +350,7 @@ type Workspace = {
 type KnowledgeItem = {
   id: string;
   userId: string;
-  workspaceId: string | null;
+  collectionId: string | null;
   sourceType: "text" | "url" | "markdown" | "voice";
   title: string | null;
   content: string;

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { updateWorkspace, deleteWorkspace } from "@/server/workspace/repository";
+import { deleteCollection, updateCollection } from "@/server/collection/repository";
 
 const updateSchema = z.object({
   name: z.string().min(1).max(50).optional(),
@@ -14,8 +14,8 @@ export async function PATCH(
 ) {
   const { id } = await params;
   const payload = updateSchema.parse(await request.json());
-  await updateWorkspace(id, payload);
-  return NextResponse.json({ success: true });
+  await updateCollection(id, payload);
+  return NextResponse.json({ ok: true });
 }
 
 export async function DELETE(
@@ -23,6 +23,6 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  await deleteWorkspace(id);
-  return NextResponse.json({ success: true });
+  await deleteCollection(id);
+  return NextResponse.json({ ok: true });
 }
