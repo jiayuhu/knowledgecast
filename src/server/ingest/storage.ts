@@ -19,7 +19,7 @@ const imageHandler = createImageHandler(
 
 async function createWithRefs(input: {
   userId: string;
-  workspaceId?: string | null;
+  collectionId?: string | null;
   sourceType: string;
   title?: string | null;
   content: string;
@@ -34,7 +34,7 @@ async function createWithRefs(input: {
 
 export async function storeKnowledgeInput(input: {
   userId: string;
-  workspaceId?: string | null;
+  collectionId?: string | null;
   sourceType: "text" | "url" | "markdown" | "voice";
   content: string;
   title?: string | null;
@@ -57,7 +57,7 @@ export async function storeKnowledgeInput(input: {
 
   const primary = await createWithRefs({
     userId: input.userId,
-    workspaceId: input.workspaceId,
+    collectionId: input.collectionId,
     sourceType: normalized.sourceType,
     title: finalTitle,
     content: finalContent,
@@ -74,7 +74,7 @@ export async function storeKnowledgeInput(input: {
           const childEnriched = await enrichUrlContent(childNormalized, { markitdown, imageHandler });
           await createWithRefs({
             userId: input.userId,
-            workspaceId: input.workspaceId,
+            collectionId: input.collectionId,
             sourceType: "url",
             title: childEnriched.normalized.title,
             content: childEnriched.normalized.content,

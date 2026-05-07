@@ -9,7 +9,7 @@ export const areas = sqliteTable("areas", {
   updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull()
 });
 
-export const workspaces = sqliteTable("workspaces", {
+export const collections = sqliteTable("collections", {
   id: text("id").primaryKey(),
   userId: text("user_id").notNull(),
   areaId: text("area_id"),
@@ -23,7 +23,7 @@ export const workspaces = sqliteTable("workspaces", {
 export const knowledgeItems = sqliteTable("knowledge_items", {
   id: text("id").primaryKey(),
   userId: text("user_id").notNull(),
-  workspaceId: text("workspace_id"),
+  collectionId: text("collection_id"),
   sourceType: text("source_type").notNull(),
   title: text("title"),
   content: text("content").notNull(),

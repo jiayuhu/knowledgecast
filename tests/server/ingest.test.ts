@@ -57,4 +57,18 @@ describe("storeKnowledgeInput with URL", () => {
 
     await deleteKnowledgeItem(item.id, "test_user");
   });
+
+  it("preserves collection assignment when storing URL input", async () => {
+    const item = await storeKnowledgeInput({
+      userId: "test_user",
+      collectionId: "collection_1",
+      sourceType: "url",
+      content: "https://example.com/article",
+      enrich: false
+    });
+
+    expect(item.collectionId).toBe("collection_1");
+
+    await deleteKnowledgeItem(item.id, "test_user");
+  });
 });
