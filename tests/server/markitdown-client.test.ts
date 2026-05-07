@@ -20,7 +20,7 @@ describe("createMarkItDownClient", () => {
 
     globalThis.fetch = mockFetch as unknown as typeof fetch;
 
-    const client = createMarkItDownClient("http://localhost:3001");
+    const client = createMarkItDownClient("http://localhost:3002");
     const result = await client.convertUrl("https://example.com/article");
 
     expect(result).toEqual({
@@ -38,7 +38,7 @@ describe("createMarkItDownClient", () => {
         })
       }) as unknown as typeof fetch;
 
-    const client = createMarkItDownClient("http://localhost:3001");
+    const client = createMarkItDownClient("http://localhost:3002");
     const result = await client.convertUrl("https://example.com");
 
     expect(result).toEqual({ content: "# No Title\n\nBody.", title: null });
@@ -47,7 +47,7 @@ describe("createMarkItDownClient", () => {
   it("MarkItDown 不可达时返回 null", async () => {
     globalThis.fetch = vi.fn().mockRejectedValue(new Error("ECONNREFUSED")) as unknown as typeof fetch;
 
-    const client = createMarkItDownClient("http://localhost:3001");
+    const client = createMarkItDownClient("http://localhost:3002");
     const result = await client.convertUrl("https://example.com");
 
     expect(result).toBeNull();
@@ -60,7 +60,7 @@ describe("createMarkItDownClient", () => {
         json: async () => ({})
       }) as unknown as typeof fetch;
 
-    const client = createMarkItDownClient("http://localhost:3001");
+    const client = createMarkItDownClient("http://localhost:3002");
     const result = await client.convertUrl("https://example.com");
 
     expect(result).toBeNull();

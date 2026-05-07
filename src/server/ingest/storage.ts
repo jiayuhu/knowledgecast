@@ -6,7 +6,9 @@ import { createLocalStorageAdapter } from "../storage/adapter";
 import { recordImageRefs } from "../knowledge/image-refs";
 import path from "node:path";
 
-const MARKITDOWN_URL = process.env.MARKITDOWN_URL ?? "http://127.0.0.1:3001";
+const MARKITDOWN_URL =
+  process.env.MARKITDOWN_URL ??
+  `http://${process.env.MARKITDOWN_HOST ?? "127.0.0.1"}:${process.env.MARKITDOWN_PORT ?? "3002"}`;
 
 const markitdown = createMarkItDownClient(MARKITDOWN_URL);
 

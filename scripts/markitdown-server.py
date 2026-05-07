@@ -1,9 +1,11 @@
 """
 MarkItDown HTTP 包装服务
-启动: python scripts/markitdown-server.py --port 3001
+启动: python scripts/markitdown-server.py
+配置: MARKITDOWN_HOST / MARKITDOWN_PORT 环境变量
 """
 
 import json
+import os
 import sys
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from markitdown import MarkItDown
@@ -61,8 +63,8 @@ class Handler(BaseHTTPRequestHandler):
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument("--host", default="127.0.0.1")
-    parser.add_argument("--port", type=int, default=3001)
+    parser.add_argument("--host", default=os.environ.get("MARKITDOWN_HOST", "127.0.0.1"))
+    parser.add_argument("--port", type=int, default=int(os.environ.get("MARKITDOWN_PORT", "3002")))
     args = parser.parse_args()
 
     server = HTTPServer((args.host, args.port), Handler)

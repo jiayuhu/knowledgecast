@@ -1,4 +1,6 @@
 .claude/
+.remember/
+.venv/
 .worktrees/
 node_modules/
 .next/

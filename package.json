@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "next dev",
+    "dev": "PORT=${PORT:-3001} next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
@@ -12,7 +12,7 @@
     "test:watch": "vitest",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "markitdown": "python scripts/markitdown-server.py --host 127.0.0.1 --port 3001",
+    "markitdown": ".venv/bin/python scripts/markitdown-server.py",
     "dev:all": "concurrently -n next,md \"npm run dev\" \"npm run markitdown\""
   },
   "dependencies": {
