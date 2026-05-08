@@ -2,6 +2,8 @@
 
 本文从 `~/x/ideas/PRJ_20260504_KnowledgeCast/content-production-flow.md` 转译而来，面向研发需求讨论。本文只定义产品目标、MVP 边界和页面能力，不进入字段、数据库、API 或状态机实现细节。
 
+相关设计补充：`docs/superpowers/specs/2026-05-08-planning-card-and-content-qa-design.md` 定义“培训策划卡”和“内容 QA 门”，用于细化骨架确认后进入创作、发布前判断内容可用性的产品边界。
+
 ## 背景
 
 当前 KnowledgeCast 已具备素材采集、AI 整理、培训页生成、私密分享和版本历史等基础能力，但产品体验仍偏向“材料采集 -> AI 生成”的线性流程。
