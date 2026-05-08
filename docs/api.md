@@ -203,9 +203,12 @@ AI 为素材内容自动生成简短标题。超长内容自动截取前 3000 �
 | 参数 | 类型 | 必填 | 说明 |
 |------|------|------|------|
 | userId | query | 是 | |
+| collectionId | query | 否 | 按工作集过滤 |
 | limit | query | 否 | 默认 5，最大 20 |
 
 **返回** `{ trainingPages: TrainingPage[] }`
+
+`TrainingPage` 包含 `collectionId: string | null`，用于标识所属工作集。
 
 ### `POST /api/training-pages/generate`
 
@@ -214,8 +217,9 @@ AI 生成培训幻灯片。
 | 参数 | 类型 | 必填 | 说明 |
 |------|------|------|------|
 | userId | body | 是 | |
+| collectionId | body | 否 | 当前工作集 ID；未勾选素材时只使用此工作集素材 |
 | frameworkId | body | 是 | 框架 ID |
-| knowledgeItemIds | body | 否 | 不传则用所有素材 |
+| knowledgeItemIds | body | 否 | 不传则使用当前工作集素材 |
 | topic | body | 否 | 培训主题背景，传入 AI 上下文 |
 | instruction | body | 否 | 调整指令 |
 | previousPageId | body | 否 | 基于已有培训页迭代 |
@@ -230,6 +234,7 @@ AI 生成培训幻灯片。
 |------|------|------|------|
 | id | path | 是 | 上一个培训页 ID |
 | userId | body | 是 | |
+| collectionId | body | 否 | 当前工作集 ID，用于限制素材范围 |
 | knowledgeItemIds | body | 是 | |
 | frameworkId | body | 是 | |
 | instruction | body | 是 | 调整指令 |

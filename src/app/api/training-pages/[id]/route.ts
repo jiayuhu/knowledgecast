@@ -65,6 +65,7 @@ export async function PATCH(
       trainingPage: {
         id: updated.id,
         userId: updated.userId,
+        collectionId: updated.collectionId,
         title: updated.title,
         framework: updated.framework,
         slidesJson: updated.slidesJson,

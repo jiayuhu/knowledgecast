@@ -43,8 +43,8 @@
 1. 第一阶段不新增独立 Task 数据对象
 2. 让现有 Collection 承担“培训任务 / 内容任务”的角色
 3. 新路由建议采用 `/collections/[id]`
-4. 现有 `/workspace/[id]` 及其子路由保留 redirect，避免旧入口失效
-5. 新代码优先使用 Collection / Training Task 语义，老代码逐步迁移
+4. 现有 `/workspace/[id]` 及其子路由不再保留 redirect；旧入口一次性迁移为新 URL
+5. 新代码统一使用 Collection / Training Task 语义
 
 建议迁移映射：
 

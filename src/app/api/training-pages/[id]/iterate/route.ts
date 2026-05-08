@@ -5,6 +5,7 @@ import { generateTrainingSlides } from "@/server/training/service";
 
 const iterateSchema = z.object({
   userId: z.string().min(1),
+  collectionId: z.string().nullable().optional(),
   knowledgeItemIds: z.array(z.string().min(1)),
   frameworkId: z.string().min(1),
   instruction: z.string().min(1)
@@ -22,6 +23,7 @@ export async function POST(
     const result = await generateTrainingSlides(
       {
         userId: payload.userId,
+        collectionId: payload.collectionId,
         knowledgeItemIds: payload.knowledgeItemIds,
         frameworkId: payload.frameworkId,
         instruction: payload.instruction,

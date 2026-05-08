@@ -5,6 +5,7 @@ import { generateTrainingSlides } from "@/server/training/service";
 
 const generateSlidesSchema = z.object({
   userId: z.string().min(1),
+  collectionId: z.string().nullable().optional(),
   knowledgeItemIds: z.array(z.string().min(1)).optional(),
   frameworkId: z.string().min(1),
   topic: z.string().optional(),
@@ -19,6 +20,7 @@ export async function POST(request: Request) {
     const result = await generateTrainingSlides(
       {
         userId: payload.userId,
+        collectionId: payload.collectionId,
         knowledgeItemIds: payload.knowledgeItemIds ?? [],
         frameworkId: payload.frameworkId,
         topic: payload.topic,

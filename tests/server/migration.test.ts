@@ -80,4 +80,43 @@ describe("collections migration", () => {
     expect(columns.rows.map((row) => row.name)).toContain("collection_id");
     expect(columns.rows.map((row) => row.name)).not.toContain("workspace_id");
   });
+
+  it("adds collection ownership to training pages without dropping existing pages", async () => {
+    const client = createClient({ url: ":memory:" });
+
+    await client.execute(`
+      CREATE TABLE training_pages (
+        id TEXT PRIMARY KEY NOT NULL,
+        user_id TEXT NOT NULL,
+        title TEXT NOT NULL,
+        framework TEXT,
+        outline_json TEXT,
+        content_json TEXT,
+        slides_json TEXT,
+        total_minutes INTEGER,
+        version INTEGER DEFAULT 1,
+        status TEXT DEFAULT 'ready' NOT NULL,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      )
+    `);
+    await client.execute({
+      sql: `
+        INSERT INTO training_pages (id, user_id, title, status, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `,
+      args: ["page_1", "user_1", "Existing Training", "ready", 1, 1]
+    });
+
+    const migration = readFileSync(
+      path.join(process.cwd(), "drizzle/0009_training_pages_collection.sql"),
+      "utf8"
+    );
+    await client.execute(migration.trim());
+
+    const rows = await client.execute("SELECT id, title, collection_id FROM training_pages");
+    expect(rows.rows).toEqual([
+      { id: "page_1", title: "Existing Training", collection_id: null }
+    ]);
+  });
 });

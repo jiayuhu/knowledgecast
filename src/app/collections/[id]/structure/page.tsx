@@ -119,7 +119,7 @@ export default function StructurePage() {
     try {
       const res = await fetch("/api/training-pages/generate", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId, knowledgeItemIds: selectedIds, frameworkId, topic: collectionTopic || undefined })
+        body: JSON.stringify({ userId, collectionId: collection.id, knowledgeItemIds: selectedIds, frameworkId, topic: collectionTopic || undefined })
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
@@ -137,7 +137,7 @@ export default function StructurePage() {
     try {
       const res = await fetch(`/api/training-pages/${result.trainingPage.id}/iterate`, {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId, knowledgeItemIds: selectedIds, frameworkId, instruction: instruction.trim() })
+        body: JSON.stringify({ userId, collectionId: collection?.id ?? null, knowledgeItemIds: selectedIds, frameworkId, instruction: instruction.trim() })
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));

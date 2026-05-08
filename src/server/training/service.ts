@@ -36,12 +36,13 @@ function buildContentBlocks(input: {
 export async function generateTrainingPage(
   input: {
     userId: string;
+    collectionId?: string | null;
     knowledgeItemIds: string[];
     shareExpiresAt?: Date;
   },
   provider: AIProvider
 ) {
-  const knowledgeItems = await listKnowledgeItems(input.userId);
+  const knowledgeItems = await listKnowledgeItems(input.userId, input.collectionId);
   const selectedKnowledgeItems =
     input.knowledgeItemIds.length > 0
       ? knowledgeItems.filter((item) => input.knowledgeItemIds.includes(item.id))
@@ -53,6 +54,7 @@ export async function generateTrainingPage(
 
   const draftPage = await createTrainingPage({
     userId: input.userId,
+    collectionId: input.collectionId,
     title: "Generating...",
     outline: [],
     content: [],
@@ -93,6 +95,7 @@ export async function generateTrainingPage(
     trainingPage: {
       id: trainingPage.id,
       userId: trainingPage.userId,
+      collectionId: trainingPage.collectionId,
       title: trainingPage.title,
       outline: JSON.parse(trainingPage.outlineJson ?? "[]") as string[],
       content: JSON.parse(trainingPage.contentJson ?? "[]") as string[],
@@ -107,6 +110,7 @@ export async function generateTrainingPage(
 export async function generateTrainingSlides(
   input: {
     userId: string;
+    collectionId?: string | null;
     knowledgeItemIds: string[];
     frameworkId: string;
     topic?: string;
@@ -115,7 +119,16 @@ export async function generateTrainingSlides(
   },
   provider: AIProvider
 ) {
-  const knowledgeItems = await listKnowledgeItems(input.userId);
+  let effectiveCollectionId = input.collectionId;
+
+  if (input.previousPageId && !effectiveCollectionId) {
+    const { listRecentTrainingPages } = await import("./repository");
+    const pages = await listRecentTrainingPages(input.userId, 100);
+    const prev = pages.find((p) => p.id === input.previousPageId);
+    effectiveCollectionId = prev?.collectionId ?? null;
+  }
+
+  const knowledgeItems = await listKnowledgeItems(input.userId, effectiveCollectionId);
   const selectedKnowledgeItems =
     input.knowledgeItemIds.length > 0
       ? knowledgeItems.filter((item) => input.knowledgeItemIds.includes(item.id))
@@ -195,6 +208,7 @@ export async function generateTrainingSlides(
       trainingPage: {
         id: trainingPage.id,
         userId: trainingPage.userId,
+        collectionId: trainingPage.collectionId,
         title: trainingPage.title,
         framework: trainingPage.framework,
         slidesJson: trainingPage.slidesJson,
@@ -210,6 +224,7 @@ export async function generateTrainingSlides(
 
   const draftPage = await createTrainingPage({
     userId: input.userId,
+    collectionId: effectiveCollectionId,
     title: slides.title,
     framework: input.frameworkId,
     slidesJson,
@@ -227,6 +242,7 @@ export async function generateTrainingSlides(
     trainingPage: {
       id: draftPage.id,
       userId: draftPage.userId,
+      collectionId: draftPage.collectionId,
       title: draftPage.title,
       framework: draftPage.framework,
       slidesJson: draftPage.slidesJson,

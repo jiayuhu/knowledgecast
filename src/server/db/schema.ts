@@ -36,6 +36,7 @@ export const knowledgeItems = sqliteTable("knowledge_items", {
 export const trainingPages = sqliteTable("training_pages", {
   id: text("id").primaryKey(),
   userId: text("user_id").notNull(),
+  collectionId: text("collection_id"),
   title: text("title").notNull(),
   framework: text("framework"),
   outlineJson: text("outline_json"),

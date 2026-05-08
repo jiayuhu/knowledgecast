@@ -51,7 +51,7 @@ export default function CollectionDashboard() {
         (data.knowledgeItems ?? []).filter((i: { status: string }) => i.status !== "archived").length
       ));
 
-    fetch("/api/training-pages?userId=demo-user&limit=50")
+    fetch(`/api/training-pages?userId=demo-user&collectionId=${encodeURIComponent(id)}&limit=50`)
       .then((r) => r.json())
       .then((data) => setPages((data.trainingPages ?? []) as TrainingPageItem[]));
   }, [id]);

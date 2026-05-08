@@ -1,11 +1,12 @@
 import { randomUUID } from "node:crypto";
-import { asc, desc, eq, inArray } from "drizzle-orm";
+import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import { getDb } from "../db/client";
 import { iterationHistory, shareLinks, trainingPages } from "../db/schema";
 
 export type TrainingPageRecord = {
   id: string;
   userId: string;
+  collectionId: string | null;
   title: string;
   framework: string | null;
   outlineJson: string | null;
@@ -20,6 +21,7 @@ export type TrainingPageRecord = {
 
 export async function createTrainingPage(input: {
   userId: string;
+  collectionId?: string | null;
   title: string;
   outline?: string[];
   content?: string[];
@@ -32,6 +34,7 @@ export async function createTrainingPage(input: {
   const record: TrainingPageRecord = {
     id: randomUUID(),
     userId: input.userId,
+    collectionId: input.collectionId ?? null,
     title: input.title,
     framework: input.framework ?? null,
     outlineJson: input.outline ? JSON.stringify(input.outline) : null,
@@ -51,7 +54,7 @@ export async function createTrainingPage(input: {
 
 export async function updateTrainingPage(
   id: string,
-  input: Partial<Pick<TrainingPageRecord, "title" | "status" | "framework" | "slidesJson" | "totalMinutes" | "version">> & {
+  input: Partial<Pick<TrainingPageRecord, "title" | "status" | "framework" | "slidesJson" | "totalMinutes" | "version" | "collectionId">> & {
     outline?: string[];
     content?: string[];
   }
@@ -64,6 +67,10 @@ export async function updateTrainingPage(
 
   if (input.title !== undefined) {
     updateValues.title = input.title;
+  }
+
+  if (input.collectionId !== undefined) {
+    updateValues.collectionId = input.collectionId;
   }
 
   if (input.status !== undefined) {
@@ -106,12 +113,17 @@ export async function updateTrainingPage(
   return row;
 }
 
-export async function listRecentTrainingPages(userId: string, limit = 5) {
+export async function listRecentTrainingPages(userId: string, limit = 5, collectionId?: string | null) {
   const db = await getDb();
+  const conditions = [eq(trainingPages.userId, userId)];
+  if (collectionId) {
+    conditions.push(eq(trainingPages.collectionId, collectionId));
+  }
+
   const pages = await db
     .select()
     .from(trainingPages)
-    .where(eq(trainingPages.userId, userId))
+    .where(and(...conditions))
     .orderBy(desc(trainingPages.createdAt))
     .limit(limit)
     .all();
@@ -131,6 +143,7 @@ export async function listRecentTrainingPages(userId: string, limit = 5) {
     return {
       id: page.id,
       userId: page.userId,
+      collectionId: page.collectionId,
       title: page.title,
       framework: page.framework,
       outline: JSON.parse(page.outlineJson ?? "[]") as string[],

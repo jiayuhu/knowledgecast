@@ -54,7 +54,7 @@ export default function SettingsPage() {
     fetch(`/api/knowledge-items?userId=demo-user&collectionId=${encodeURIComponent(collection.id)}&limit=100`)
       .then((r) => r.json())
       .then((data) => setFragmentCount((data.knowledgeItems ?? []).filter((i: { status: string }) => i.status !== "archived").length));
-    fetch("/api/training-pages?userId=demo-user&limit=20")
+    fetch(`/api/training-pages?userId=demo-user&collectionId=${encodeURIComponent(collection.id)}&limit=20`)
       .then((r) => r.json())
       .then((data) => setTrainingPages(data.trainingPages ?? []));
   }, [collection]);
@@ -67,7 +67,7 @@ export default function SettingsPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name: name.trim(), topic: topic.trim() || null, areaId: areaId || null })
     });
-    const updatedCollection = { ...collection, name: name.trim(), topic: topic.trim() || null };
+    const updatedCollection = { ...collection, name: name.trim(), topic: topic.trim() || null, areaId: areaId || null };
     setCollection(updatedCollection);
     window.dispatchEvent(new CustomEvent("collection-changed", { detail: updatedCollection }));
     window.dispatchEvent(new CustomEvent("sidebar-refresh"));

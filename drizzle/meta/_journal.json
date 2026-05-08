@@ -64,6 +64,13 @@
       "when": 1777920000000,
       "tag": "0008_collections_migration",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1777921000000,
+      "tag": "0009_training_pages_collection",
+      "breakpoints": true
     }
   ]
 }

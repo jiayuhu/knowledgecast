@@ -35,7 +35,7 @@ export default function PublishPage() {
       }
     });
 
-    fetch("/api/training-pages?userId=demo-user&limit=50")
+    fetch(`/api/training-pages?userId=demo-user&collectionId=${encodeURIComponent(id)}&limit=50`)
       .then((r) => r.json())
       .then((data) => {
         const items = (data.trainingPages ?? []) as TrainingPageItem[];

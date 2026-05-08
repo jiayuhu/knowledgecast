@@ -7,8 +7,8 @@ import {
   trainingPages
 } from "@/server/db/schema";
 import { createKnowledgeItem } from "@/server/knowledge/repository";
-import { listRecentTrainingPages } from "@/server/training/repository";
-import { generateTrainingPage } from "@/server/training/service";
+import { createTrainingPage, listRecentTrainingPages } from "@/server/training/repository";
+import { generateTrainingPage, generateTrainingSlides } from "@/server/training/service";
 
 describe("generateTrainingPage", () => {
   beforeEach(async () => {
@@ -101,5 +101,67 @@ describe("generateTrainingPage", () => {
     expect(recentPages).toHaveLength(1);
     expect(recentPages[0]?.title).toBe("KnowledgeCast Overview");
     expect(recentPages[0]?.shareLink?.token).toBe(generated.shareLink.token);
+  });
+
+  it("uses only current collection materials when no fragments are selected", async () => {
+    await createKnowledgeItem({
+      userId: "user_1",
+      collectionId: "collection_a",
+      sourceType: "text",
+      title: "A",
+      content: "Collection A note."
+    });
+    await createKnowledgeItem({
+      userId: "user_1",
+      collectionId: "collection_b",
+      sourceType: "text",
+      title: "B",
+      content: "Collection B note."
+    });
+
+    const provider = {
+      generate: vi.fn(),
+      generateSlides: vi.fn(async () => ({
+        title: "Collection A Training",
+        framework: "problem-solving",
+        totalMinutes: 20,
+        slides: []
+      }))
+    };
+
+    await generateTrainingSlides(
+      {
+        userId: "user_1",
+        collectionId: "collection_a",
+        knowledgeItemIds: [],
+        frameworkId: "problem-solving"
+      },
+      provider
+    );
+
+    expect(provider.generateSlides).toHaveBeenCalledWith(
+      expect.objectContaining({
+        fragments: [expect.objectContaining({ content: "Collection A note." })]
+      })
+    );
+  });
+
+  it("filters recent training pages by collection", async () => {
+    await createTrainingPage({
+      userId: "user_1",
+      collectionId: "collection_a",
+      title: "Collection A Training",
+      status: "ready"
+    });
+    await createTrainingPage({
+      userId: "user_1",
+      collectionId: "collection_b",
+      title: "Collection B Training",
+      status: "ready"
+    });
+
+    const recentPages = await listRecentTrainingPages("user_1", 10, "collection_a");
+
+    expect(recentPages.map((page) => page.title)).toEqual(["Collection A Training"]);
   });
 });
