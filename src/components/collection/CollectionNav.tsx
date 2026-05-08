@@ -15,12 +15,13 @@ function Logo() {
   );
 }
 
-const tabs = [
-  { label: "采集", href: (id: string) => `/collections/${id}/capture` },
-  { label: "整理", href: (id: string) => `/collections/${id}/structure` },
-  { label: "发布", href: (id: string) => `/collections/${id}/publish` },
-  { label: "设置", href: (id: string) => `/collections/${id}/settings` },
-];
+const phaseLabels: Record<string, { label: string; color: string }> = {
+  capture: { label: "采集", color: "bg-blue-100 text-blue-700" },
+  organize: { label: "整理", color: "bg-purple-100 text-purple-700" },
+  create: { label: "创作", color: "bg-amber-100 text-amber-700" },
+  publish: { label: "可用", color: "bg-green-100 text-green-700" },
+  iterate: { label: "迭代", color: "bg-gray-100 text-gray-700" },
+};
 
 type Props = {
   collectionId?: string;
@@ -79,7 +80,8 @@ export function CollectionNav({ collectionId, collectionName, areaName, phase }:
   const pathname = usePathname();
 
   const isUnassigned = pathname === "/unassigned";
-  const showTabs = !isUnassigned && collectionId && collectionName;
+  const showContent = !isUnassigned && collectionId && collectionName;
+  const phaseInfo = phase ? phaseLabels[phase] : undefined;
 
   return (
     <header className="shrink-0 border-b border-gray-200 bg-white">
@@ -93,7 +95,7 @@ export function CollectionNav({ collectionId, collectionName, areaName, phase }:
         </Link>
 
         {/* 分隔 */}
-        {(showTabs || isUnassigned) && <div className="h-5 w-px bg-gray-200 shrink-0" />}
+        {(showContent || isUnassigned) && <div className="h-5 w-px bg-gray-200 shrink-0" />}
 
         {/* 未归类素材标识 */}
         {isUnassigned && (
@@ -105,8 +107,8 @@ export function CollectionNav({ collectionId, collectionName, areaName, phase }:
           </div>
         )}
 
-        {/* 面包屑 */}
-        {showTabs && (
+        {/* 面包屑 + 阶段状态 */}
+        {showContent && (
           <div className="flex items-center gap-1.5 text-sm text-gray-400 shrink-0">
             {areaName && (
               <>
@@ -120,40 +122,34 @@ export function CollectionNav({ collectionId, collectionName, areaName, phase }:
             >
               {collectionName}
             </Link>
+            {phaseInfo && (
+              <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${phaseInfo.color}`}>
+                ● {phaseInfo.label}
+              </span>
+            )}
           </div>
         )}
 
-        {/* 标签导航 */}
-        {showTabs && (
-          <nav className="flex items-center gap-1">
-            {tabs.map((t) => {
-              const href = t.href(collectionId!);
-              const active = pathname === href;
-              return (
-                <Link
-                  key={t.label}
-                  href={href}
-                  className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
-                    active
-                      ? "bg-gray-100 text-gray-900"
-                      : "text-gray-500 hover:bg-gray-50 hover:text-gray-700"
-                  }`}
-                >
-                  {t.label}
-                </Link>
-              );
-            })}
-          </nav>
-        )}
-
-        {/* 右侧：操作按钮 + 用户预留 */}
+        {/* 右侧：操作按钮 + 设置 + 用户菜单 */}
         <div className="flex items-center gap-2 ml-auto shrink-0">
-          {showTabs && !isUnassigned && (
+          {showContent && !isUnassigned && (
             <Link
               href={`/collections/${collectionId}/capture`}
               className="rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 transition"
             >
               + 新建素材
+            </Link>
+          )}
+          {showContent && (
+            <Link
+              href={`/collections/${collectionId}/settings`}
+              className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition"
+              title="工作集设置"
+            >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
             </Link>
           )}
           <UserMenu />
