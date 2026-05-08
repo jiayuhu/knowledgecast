@@ -164,4 +164,49 @@ describe("generateTrainingPage", () => {
 
     expect(recentPages.map((page) => page.title)).toEqual(["Collection A Training"]);
   });
+
+  it("rejects iteration when requested collection differs from the previous page collection", async () => {
+    const previousPage = await createTrainingPage({
+      userId: "user_1",
+      collectionId: "collection_a",
+      title: "Collection A Training",
+      slidesJson: JSON.stringify({
+        title: "Collection A Training",
+        framework: "problem-solving",
+        totalMinutes: 20,
+        slides: []
+      }),
+      status: "ready"
+    });
+    await createKnowledgeItem({
+      userId: "user_1",
+      collectionId: "collection_b",
+      sourceType: "text",
+      title: "B",
+      content: "Collection B note."
+    });
+
+    const provider = {
+      generate: vi.fn(),
+      generateSlides: vi.fn(async () => ({
+        title: "Wrong Collection Training",
+        framework: "problem-solving",
+        totalMinutes: 20,
+        slides: []
+      }))
+    };
+
+    await expect(generateTrainingSlides(
+      {
+        userId: "user_1",
+        collectionId: "collection_b",
+        knowledgeItemIds: [],
+        frameworkId: "problem-solving",
+        previousPageId: previousPage.id
+      },
+      provider
+    )).rejects.toThrow("培训页不属于当前工作集");
+
+    expect(provider.generateSlides).not.toHaveBeenCalled();
+  });
 });

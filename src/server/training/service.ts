@@ -120,12 +120,26 @@ export async function generateTrainingSlides(
   provider: AIProvider
 ) {
   let effectiveCollectionId = input.collectionId;
+  let previousSlides: TrainingContent | undefined;
+  let version = 1;
+  let previousPageCollectionId: string | null | undefined;
 
-  if (input.previousPageId && !effectiveCollectionId) {
+  if (input.previousPageId) {
     const { listRecentTrainingPages } = await import("./repository");
     const pages = await listRecentTrainingPages(input.userId, 100);
     const prev = pages.find((p) => p.id === input.previousPageId);
-    effectiveCollectionId = prev?.collectionId ?? null;
+    if (!prev) {
+      throw new Error("培训页不存在");
+    }
+    previousPageCollectionId = prev.collectionId;
+    if (effectiveCollectionId && previousPageCollectionId && effectiveCollectionId !== previousPageCollectionId) {
+      throw new Error("培训页不属于当前工作集");
+    }
+    effectiveCollectionId = previousPageCollectionId ?? effectiveCollectionId ?? null;
+    if (prev.slidesJson) {
+      previousSlides = JSON.parse(prev.slidesJson);
+      version = (prev.version ?? 1) + 1;
+    }
   }
 
   const knowledgeItems = await listKnowledgeItems(input.userId, effectiveCollectionId);
@@ -141,19 +155,6 @@ export async function generateTrainingSlides(
   const framework = await getFramework(input.frameworkId);
   if (!framework) {
     throw new Error(`未知框架: ${input.frameworkId}`);
-  }
-
-  let previousSlides: TrainingContent | undefined;
-  let version = 1;
-
-  if (input.previousPageId) {
-    const { listRecentTrainingPages } = await import("./repository");
-    const pages = await listRecentTrainingPages(input.userId, 100);
-    const prev = pages.find((p) => p.id === input.previousPageId);
-    if (prev?.slidesJson) {
-      previousSlides = JSON.parse(prev.slidesJson);
-      version = (prev.version ?? 1) + 1;
-    }
   }
 
   const slides = await provider.generateSlides({
