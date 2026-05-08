@@ -28,10 +28,10 @@ type Fragment = {
 
 type Props = {
   userId: string;
-  workspaceId: string;
+  collectionId: string;
 };
 
-export function FragmentList({ userId, workspaceId }: Props) {
+export function FragmentList({ userId, collectionId }: Props) {
   const [fragments, setFragments] = useState<Fragment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -48,7 +48,7 @@ export function FragmentList({ userId, workspaceId }: Props) {
     setError("");
     try {
       const response = await fetch(
-        `/api/knowledge-items?userId=${encodeURIComponent(userId)}&workspaceId=${encodeURIComponent(workspaceId)}&limit=50`
+        `/api/knowledge-items?userId=${encodeURIComponent(userId)}&collectionId=${encodeURIComponent(collectionId)}&limit=50`
       );
       if (!response.ok) throw new Error("加载失败");
       const data = await response.json();
@@ -58,7 +58,7 @@ export function FragmentList({ userId, workspaceId }: Props) {
     } finally {
       setLoading(false);
     }
-  }, [userId, workspaceId]);
+  }, [userId, collectionId]);
 
   useEffect(() => { loadFragments(); }, [loadFragments]);
 

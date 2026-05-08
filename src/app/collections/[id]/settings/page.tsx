@@ -4,13 +4,13 @@ import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 
 type Area = { id: string; name: string; userId: string };
-type Workspace = { id: string; name: string; topic: string | null; areaId: string | null; userId: string };
+type Collection = { id: string; name: string; topic: string | null; areaId: string | null; userId: string };
 type TrainingPageItem = { id: string; title: string; framework: string | null; totalMinutes: number | null; version: number | null; status: string; createdAt: string };
 
 export default function SettingsPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const [workspace, setWorkspace] = useState<Workspace | null>(null);
+  const [workspace, setCollection] = useState<Collection | null>(null);
   const [areaName, setAreaName] = useState("");
   const [areas, setAreas] = useState<Area[]>([]);
   const [name, setName] = useState("");
@@ -25,11 +25,11 @@ export default function SettingsPage() {
   const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
-    fetch("/api/workspaces?userId=demo-user")
+    fetch("/api/collections?userId=demo-user")
       .then((r) => r.json())
       .then((data) => {
-        const ws = (data.workspaces as Workspace[]).find((w) => w.id === id) ?? null;
-        setWorkspace(ws);
+        const ws = (data.collections as Collection[]).find((w) => w.id === id) ?? null;
+        setCollection(ws);
         if (ws) { setName(ws.name); setTopic(ws.topic ?? ""); setAreaId(ws.areaId ?? ""); }
       });
 
@@ -47,7 +47,7 @@ export default function SettingsPage() {
 
   useEffect(() => {
     if (!workspace) return;
-    fetch(`/api/knowledge-items?userId=demo-user&workspaceId=${encodeURIComponent(workspace.id)}&limit=100`)
+    fetch(`/api/knowledge-items?userId=demo-user&collectionId=${encodeURIComponent(workspace.id)}&limit=100`)
       .then((r) => r.json())
       .then((data) => setFragmentCount((data.knowledgeItems ?? []).filter((i: { status: string }) => i.status !== "archived").length));
     fetch("/api/training-pages?userId=demo-user&limit=20")
@@ -58,13 +58,13 @@ export default function SettingsPage() {
   async function handleSave() {
     if (!workspace || !name.trim()) return;
     setSaving(true);
-    await fetch(`/api/workspaces/${workspace.id}`, {
+    await fetch(`/api/collections/${workspace.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name: name.trim(), topic: topic.trim() || null, areaId: areaId || null })
     });
-    setWorkspace({ ...workspace, name: name.trim(), topic: topic.trim() || null });
-    window.dispatchEvent(new CustomEvent("workspace-changed", { detail: { ...workspace, name: name.trim(), topic: topic.trim() || null } }));
+    setCollection({ ...workspace, name: name.trim(), topic: topic.trim() || null });
+    window.dispatchEvent(new CustomEvent("collection-changed", { detail: { ...workspace, name: name.trim(), topic: topic.trim() || null } }));
     window.dispatchEvent(new CustomEvent("sidebar-refresh"));
     setSaving(false);
     setMessage("已保存");
@@ -74,9 +74,9 @@ export default function SettingsPage() {
   async function handleDelete() {
     if (!workspace) return;
     setDeleting(true);
-    await fetch(`/api/workspaces/${workspace.id}`, { method: "DELETE" });
+    await fetch(`/api/collections/${workspace.id}`, { method: "DELETE" });
     window.dispatchEvent(new CustomEvent("sidebar-refresh"));
-    router.push("/workspace/capture");
+    router.push("/unassigned");
   }
 
   if (!workspace) return <main className="mx-auto max-w-2xl px-8 py-8"><p className="text-sm text-gray-400">加载中...</p></main>;

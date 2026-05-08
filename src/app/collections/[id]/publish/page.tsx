@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 
-type Workspace = { id: string; name: string; areaId?: string | null };
+type Collection = { id: string; name: string; areaId?: string | null };
 type TrainingPageItem = {
   id: string; title: string; framework: string | null; totalMinutes: number | null;
   version: number | null; status: string; createdAt: string;
@@ -14,7 +14,7 @@ type TrainingPageItem = {
 export default function PublishPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const [workspace, setWorkspace] = useState<Workspace | null>(null);
+  const [workspace, setCollection] = useState<Collection | null>(null);
   const [areaName, setAreaName] = useState("");
   const [pages, setPages] = useState<TrainingPageItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -22,13 +22,13 @@ export default function PublishPage() {
 
   useEffect(() => {
     Promise.all([
-      fetch("/api/workspaces?userId=demo-user"),
+      fetch("/api/collections?userId=demo-user"),
       fetch("/api/areas?userId=demo-user")
     ]).then(async ([wsRes, areaRes]) => {
       const wsData = await wsRes.json();
       const areaData = await areaRes.json();
-      const ws = (wsData.workspaces as Workspace[]).find((w) => w.id === id);
-      setWorkspace(ws ?? null);
+      const ws = (wsData.collections as Collection[]).find((w) => w.id === id);
+      setCollection(ws ?? null);
       if (ws?.areaId) {
         const area = (areaData.areas as { id: string; name: string }[]).find((a) => a.id === ws.areaId);
         setAreaName(area?.name ?? "");
@@ -41,7 +41,7 @@ export default function PublishPage() {
         const items = (data.trainingPages ?? []) as TrainingPageItem[];
         setPages(items);
         if (items.length === 0) {
-          router.push(`/workspace/${id}/structure`);
+          router.push(`/collections/${id}/structure`);
         }
       })
       .finally(() => setLoading(false));
@@ -64,7 +64,7 @@ export default function PublishPage() {
           <div className="text-3xl mb-3">📤</div>
           <p className="text-sm text-gray-500">还没有培训页</p>
           <p className="mt-1 text-xs text-gray-400 mb-4">在整理页选择素材和框架，让 AI 生成培训幻灯片</p>
-          <Link href={`/workspace/${id}/structure`} className="inline-block rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">去整理页生成</Link>
+          <Link href={`/collections/${id}/structure`} className="inline-block rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">去整理页生成</Link>
         </div>
       ) : (
         <div className="space-y-3">

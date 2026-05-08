@@ -16,15 +16,15 @@ function Logo() {
 }
 
 const tabs = [
-  { label: "采集", href: (id: string) => `/workspace/${id}/capture` },
-  { label: "整理", href: (id: string) => `/workspace/${id}/structure` },
-  { label: "发布", href: (id: string) => `/workspace/${id}/publish` },
-  { label: "设置", href: (id: string) => `/workspace/${id}/settings` },
+  { label: "采集", href: (id: string) => `/collections/${id}/capture` },
+  { label: "整理", href: (id: string) => `/collections/${id}/structure` },
+  { label: "发布", href: (id: string) => `/collections/${id}/publish` },
+  { label: "设置", href: (id: string) => `/collections/${id}/settings` },
 ];
 
 type Props = {
-  workspaceId?: string;
-  workspaceName?: string;
+  collectionId?: string;
+  collectionName?: string;
   areaName?: string;
 };
 
@@ -74,11 +74,11 @@ function UserMenu() {
   );
 }
 
-export function WorkspaceNav({ workspaceId, workspaceName, areaName }: Props) {
+export function CollectionNav({ collectionId, collectionName, areaName }: Props) {
   const pathname = usePathname();
 
-  const isOrphaned = pathname === "/workspace/orphaned";
-  const showTabs = !isOrphaned && workspaceId && workspaceName;
+  const isUnassigned = pathname === "/unassigned";
+  const showTabs = !isUnassigned && collectionId && collectionName;
 
   return (
     <header className="shrink-0 border-b border-gray-200 bg-white">
@@ -92,10 +92,10 @@ export function WorkspaceNav({ workspaceId, workspaceName, areaName }: Props) {
         </Link>
 
         {/* 分隔 */}
-        {(showTabs || isOrphaned) && <div className="h-5 w-px bg-gray-200 shrink-0" />}
+        {(showTabs || isUnassigned) && <div className="h-5 w-px bg-gray-200 shrink-0" />}
 
         {/* 未归类素材标识 */}
-        {isOrphaned && (
+        {isUnassigned && (
           <div className="flex items-center gap-1.5 text-sm shrink-0">
             <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
@@ -114,10 +114,10 @@ export function WorkspaceNav({ workspaceId, workspaceName, areaName }: Props) {
               </>
             )}
             <Link
-              href={`/workspace/${workspaceId}`}
+              href={`/collections/${collectionId}`}
               className="hover:text-gray-700 transition font-medium text-gray-600"
             >
-              {workspaceName}
+              {collectionName}
             </Link>
           </div>
         )}
@@ -126,7 +126,7 @@ export function WorkspaceNav({ workspaceId, workspaceName, areaName }: Props) {
         {showTabs && (
           <nav className="flex items-center gap-1">
             {tabs.map((t) => {
-              const href = t.href(workspaceId!);
+              const href = t.href(collectionId!);
               const active = pathname === href;
               return (
                 <Link
@@ -147,9 +147,9 @@ export function WorkspaceNav({ workspaceId, workspaceName, areaName }: Props) {
 
         {/* 右侧：操作按钮 + 用户预留 */}
         <div className="flex items-center gap-2 ml-auto shrink-0">
-          {showTabs && !isOrphaned && (
+          {showTabs && !isUnassigned && (
             <Link
-              href={`/workspace/${workspaceId}/capture`}
+              href={`/collections/${collectionId}/capture`}
               className="rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 transition"
             >
               + 新建素材

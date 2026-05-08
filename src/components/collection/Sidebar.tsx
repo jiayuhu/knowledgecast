@@ -5,32 +5,32 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 
 type Area = { id: string; name: string; userId: string };
-type Workspace = { id: string; name: string; areaId: string | null; userId: string };
+type Collection = { id: string; name: string; areaId: string | null; userId: string };
 
 type Props = {
   userId: string;
   activeAreaId: string | null;
-  activeWorkspaceId: string | null;
+  activeCollectionId: string | null;
   onAreaChange: (area: Area) => void;
-  onWorkspaceChange: (ws: Workspace) => void;
+  onCollectionChange: (ws: Collection) => void;
 };
 
-function emitWorkspaceChange(ws: Workspace) {
-  localStorage.setItem("knowledgecast_workspace_id", ws.id);
-  window.dispatchEvent(new CustomEvent("workspace-changed", { detail: ws }));
+function emitCollectionChange(ws: Collection) {
+  localStorage.setItem("knowledgecast_collection_id", ws.id);
+  window.dispatchEvent(new CustomEvent("collection-changed", { detail: ws }));
 }
 
 export function Sidebar({
   userId,
   activeAreaId,
-  activeWorkspaceId,
+  activeCollectionId,
   onAreaChange,
-  onWorkspaceChange
+  onCollectionChange
 }: Props) {
   const router = useRouter();
   const pathname = usePathname();
   const [areas, setAreas] = useState<Area[]>([]);
-  const [workspaces, setWorkspaces] = useState<Record<string, Workspace[]>>({});
+  const [workspaces, setCollections] = useState<Record<string, Collection[]>>({});
   const [collapsedAreas, setCollapsedAreas] = useState<Set<string>>(new Set());
   const [creatingArea, setCreatingArea] = useState(false);
   const [creatingWs, setCreatingWs] = useState<string | null>(null);
@@ -49,9 +49,9 @@ export function Sidebar({
     });
   }
 
-  async function handleReorderWorkspaces(areaId: string, ordered: Workspace[]) {
-    setWorkspaces((prev) => ({ ...prev, [areaId]: ordered }));
-    await fetch("/api/workspaces", {
+  async function handleReorderCollections(areaId: string, ordered: Collection[]) {
+    setCollections((prev) => ({ ...prev, [areaId]: ordered }));
+    await fetch("/api/collections", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ orderedIds: ordered.map((w) => w.id) })
@@ -82,8 +82,8 @@ export function Sidebar({
       if (!ws) return;
       const nextSrc = srcWs.filter((w) => w.id !== dragItem.id);
       const nextDst = [...(workspaces[targetAreaId] ?? []), { ...ws, areaId: targetAreaId }];
-      setWorkspaces((prev) => ({ ...prev, [srcArea]: nextSrc, [targetAreaId]: nextDst }));
-      fetch(`/api/workspaces/${ws.id}`, {
+      setCollections((prev) => ({ ...prev, [srcArea]: nextSrc, [targetAreaId]: nextDst }));
+      fetch(`/api/collections/${ws.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ areaId: targetAreaId })
@@ -101,7 +101,7 @@ export function Sidebar({
     if (idx < 0 || targetIdx < 0) { setDragItem(null); return; }
     const [moved] = list.splice(idx, 1);
     list.splice(targetIdx, 0, moved);
-    handleReorderWorkspaces(targetAreaId, list);
+    handleReorderCollections(targetAreaId, list);
     setDragItem(null);
   }
 
@@ -115,24 +115,24 @@ export function Sidebar({
       onAreaChange(areaList[0]);
     }
 
-    const wsMap: Record<string, Workspace[]> = {};
-    let firstWs: Workspace | null = null;
+    const wsMap: Record<string, Collection[]> = {};
+    let firstWs: Collection | null = null;
     for (const area of areaList) {
       const wsRes = await fetch(
-        `/api/workspaces?userId=${encodeURIComponent(userId)}&areaId=${encodeURIComponent(area.id)}`
+        `/api/collections?userId=${encodeURIComponent(userId)}&areaId=${encodeURIComponent(area.id)}`
       );
       const wsData = await wsRes.json();
-      wsMap[area.id] = (wsData.workspaces ?? []) as Workspace[];
+      wsMap[area.id] = (wsData.collections ?? []) as Collection[];
       if (!firstWs && wsMap[area.id].length > 0) {
         firstWs = wsMap[area.id][0];
       }
     }
-    setWorkspaces(wsMap);
+    setCollections(wsMap);
 
     // 首次加载，无选中工作集时，同步状态但不跳转（服务端已处理跳转）
-    if (!activeWorkspaceId && firstWs) {
-      onWorkspaceChange(firstWs);
-      emitWorkspaceChange(firstWs);
+    if (!activeCollectionId && firstWs) {
+      onCollectionChange(firstWs);
+      emitCollectionChange(firstWs);
     }
   }, [userId, activeAreaId]);
 
@@ -158,7 +158,7 @@ export function Sidebar({
       const data = await res.json();
       const area = data.area as Area;
       setAreas((prev) => [...prev, area]);
-      setWorkspaces((prev) => ({ ...prev, [area.id]: [] }));
+      setCollections((prev) => ({ ...prev, [area.id]: [] }));
       setCollapsedAreas((prev) => {
         prev.delete(area.id);
         return new Set(prev);
@@ -170,29 +170,29 @@ export function Sidebar({
 
   async function handleCreateWs(areaId: string) {
     if (!newName.trim()) return;
-    const res = await fetch("/api/workspaces", {
+    const res = await fetch("/api/collections", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ userId, areaId, name: newName.trim() })
     });
     if (res.ok) {
       const data = await res.json();
-      const ws = data.workspace as Workspace;
-      setWorkspaces((prev) => ({
+      const ws = data.collection as Collection;
+      setCollections((prev) => ({
         ...prev,
         [areaId]: [...(prev[areaId] ?? []), ws]
       }));
-      onWorkspaceChange(ws);
-      emitWorkspaceChange(ws);
+      onCollectionChange(ws);
+      emitCollectionChange(ws);
       setNewName("");
       setCreatingWs(null);
-      router.push(`/workspace/${ws.id}`);
+      router.push(`/collections/${ws.id}`);
     }
   }
 
   async function handleRename(type: "area" | "ws", id: string) {
     if (!editName.trim()) { setEditingId(null); return; }
-    const base = type === "area" ? "areas" : "workspaces";
+    const base = type === "area" ? "areas" : "collections";
     await fetch(`/api/${base}/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -201,7 +201,11 @@ export function Sidebar({
     if (type === "area") {
       setAreas((prev) => prev.map((a) => (a.id === id ? { ...a, name: editName.trim() } : a)));
     } else {
-      setWorkspaces((prev) => {
+      const updatedActiveCollection =
+        activeCollectionId === id
+          ? Object.values(workspaces).flat().find((w) => w.id === id) ?? null
+          : null;
+      setCollections((prev) => {
         const next = { ...prev };
         for (const aid of Object.keys(next)) {
           next[aid] = next[aid].map((w) =>
@@ -210,6 +214,11 @@ export function Sidebar({
         }
         return next;
       });
+      if (updatedActiveCollection) {
+        const renamed = { ...updatedActiveCollection, name: editName.trim() };
+        onCollectionChange(renamed);
+        emitCollectionChange(renamed);
+      }
     }
     setEditingId(null);
   }
@@ -217,17 +226,17 @@ export function Sidebar({
   async function handleDelete(type: "area" | "ws", id: string) {
     const label = type === "area" ? "确定删除此工作区？其下的工作集仍会保留。" : "确定删除此工作集？素材不会丢失但会失去归属。";
     if (!confirm(label)) return;
-    const base = type === "area" ? "areas" : "workspaces";
+    const base = type === "area" ? "areas" : "collections";
     await fetch(`/api/${base}/${id}`, { method: "DELETE" });
     if (type === "area") {
       setAreas((prev) => prev.filter((a) => a.id !== id));
-      setWorkspaces((prev) => {
+      setCollections((prev) => {
         const next = { ...prev };
         delete next[id];
         return next;
       });
     } else {
-      setWorkspaces((prev) => {
+      setCollections((prev) => {
         const next = { ...prev };
         for (const aid of Object.keys(next)) {
           next[aid] = next[aid].filter((w) => w.id !== id);
@@ -237,14 +246,14 @@ export function Sidebar({
     }
   }
 
-  function selectWorkspace(ws: Workspace) {
-    onWorkspaceChange(ws);
+  function selectCollection(ws: Collection) {
+    onCollectionChange(ws);
     if (ws.areaId) {
       const area = areas.find((a) => a.id === ws.areaId);
       if (area) onAreaChange(area);
     }
-    emitWorkspaceChange(ws);
-    router.push(`/workspace/${ws.id}`);
+    emitCollectionChange(ws);
+    router.push(`/collections/${ws.id}`);
   }
 
   return (
@@ -328,7 +337,7 @@ export function Sidebar({
               {!collapsed && (
                 <div className="ml-4 space-y-0.5">
                   {areaWs.map((ws) => {
-                    const active = activeWorkspaceId === ws.id && pathname !== "/workspace/orphaned";
+                    const active = activeCollectionId === ws.id && pathname !== "/unassigned";
                     const editing = editingId === ws.id;
                     return (
                       <div key={ws.id}
@@ -353,7 +362,7 @@ export function Sidebar({
                           />
                         ) : (
                           <button
-                            onClick={() => selectWorkspace(ws)}
+                            onClick={() => selectCollection(ws)}
                             className={`flex-1 rounded-md px-2 py-1.5 text-left text-sm transition ${
                               active
                                 ? "bg-blue-50 text-blue-700 font-medium"
@@ -447,9 +456,9 @@ export function Sidebar({
         {/* 未归类素材 */}
         <div className="pt-3 mt-3 border-t border-gray-200">
           <Link
-            href="/workspace/orphaned"
+            href="/unassigned"
             className={`flex items-center gap-1.5 w-full rounded-lg px-2 py-1.5 text-left text-sm transition ${
-              pathname === "/workspace/orphaned"
+              pathname === "/unassigned"
                 ? "bg-blue-50 text-blue-700 font-medium"
                 : "text-gray-500 hover:bg-gray-50 hover:text-gray-700"
             }`}

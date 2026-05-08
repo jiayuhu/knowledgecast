@@ -12,12 +12,12 @@ type Fragment = {
   createdAt: string;
 };
 
-type Workspace = { id: string; name: string; areaId: string | null; userId: string };
+type Collection = { id: string; name: string; areaId: string | null; userId: string };
 
 export default function OrphanedPage() {
   const router = useRouter();
   const [fragments, setFragments] = useState<Fragment[]>([]);
-  const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
+  const [workspaces, setCollections] = useState<Collection[]>([]);
   const [loading, setLoading] = useState(true);
   const [reassigning, setReassigning] = useState<string | null>(null);
   const [message, setMessage] = useState("");
@@ -28,21 +28,21 @@ export default function OrphanedPage() {
       .then((data) => setFragments((data.knowledgeItems ?? []) as Fragment[]))
       .finally(() => setLoading(false));
 
-    fetch("/api/workspaces?userId=demo-user")
+    fetch("/api/collections?userId=demo-user")
       .then((r) => r.json())
-      .then((data) => setWorkspaces((data.workspaces ?? []) as Workspace[]));
+      .then((data) => setCollections((data.collections ?? []) as Collection[]));
   }, []);
 
   useEffect(() => { load(); }, [load]);
 
-  async function handleReassign(fragmentId: string, workspaceId: string) {
+  async function handleReassign(fragmentId: string, collectionId: string) {
     setReassigning(fragmentId);
     setMessage("");
     try {
       const res = await fetch(`/api/knowledge-items/${fragmentId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: "demo-user", workspaceId }),
+        body: JSON.stringify({ userId: "demo-user", collectionId }),
       });
       if (!res.ok) throw new Error("转移失败");
       setFragments((prev) => prev.filter((f) => f.id !== fragmentId));

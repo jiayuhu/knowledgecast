@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 
-type Workspace = { id: string; name: string; areaId: string | null; topic?: string | null; userId: string };
+type Collection = { id: string; name: string; areaId: string | null; topic?: string | null; userId: string };
 type TrainingPageItem = {
   id: string;
   title: string;
@@ -17,14 +17,14 @@ type TrainingPageItem = {
 };
 
 const cards = [
-  { label: "采集", desc: "添加碎片素材", icon: "📥", href: (id: string) => `/workspace/${id}/capture`, color: "border-gray-200 hover:border-blue-300" },
-  { label: "整理", desc: "AI 生成培训内容", icon: "🧠", href: (id: string) => `/workspace/${id}/structure`, color: "border-gray-200 hover:border-purple-300" },
-  { label: "发布", desc: "管理分享链接和预览", icon: "📤", href: (id: string) => `/workspace/${id}/publish`, color: "border-gray-200 hover:border-green-300" }
+  { label: "采集", desc: "添加碎片素材", icon: "📥", href: (id: string) => `/collections/${id}/capture`, color: "border-gray-200 hover:border-blue-300" },
+  { label: "整理", desc: "AI 生成培训内容", icon: "🧠", href: (id: string) => `/collections/${id}/structure`, color: "border-gray-200 hover:border-purple-300" },
+  { label: "发布", desc: "管理分享链接和预览", icon: "📤", href: (id: string) => `/collections/${id}/publish`, color: "border-gray-200 hover:border-green-300" }
 ];
 
-export default function WorkspaceDashboard() {
+export default function CollectionDashboard() {
   const { id } = useParams<{ id: string }>();
-  const [workspace, setWorkspace] = useState<Workspace | null>(null);
+  const [workspace, setCollection] = useState<Collection | null>(null);
   const [areaName, setAreaName] = useState("");
   const [fragmentCount, setFragmentCount] = useState(0);
   const [pages, setPages] = useState<TrainingPageItem[]>([]);
@@ -32,20 +32,20 @@ export default function WorkspaceDashboard() {
 
   const load = useCallback(() => {
     Promise.all([
-      fetch("/api/workspaces?userId=demo-user"),
+      fetch("/api/collections?userId=demo-user"),
       fetch("/api/areas?userId=demo-user")
     ]).then(async ([wsRes, areaRes]) => {
       const wsData = await wsRes.json();
       const areaData = await areaRes.json();
-      const ws = (wsData.workspaces as Workspace[]).find((w) => w.id === id);
-      setWorkspace(ws ?? null);
+      const ws = (wsData.collections as Collection[]).find((w) => w.id === id);
+      setCollection(ws ?? null);
       if (ws?.areaId) {
         const area = (areaData.areas as { id: string; name: string }[]).find((a) => a.id === ws.areaId);
         setAreaName(area?.name ?? "");
       }
     });
 
-    fetch(`/api/knowledge-items?userId=demo-user&workspaceId=${encodeURIComponent(id)}&limit=200`)
+    fetch(`/api/knowledge-items?userId=demo-user&collectionId=${encodeURIComponent(id)}&limit=200`)
       .then((r) => r.json())
       .then((data) => setFragmentCount(
         (data.knowledgeItems ?? []).filter((i: { status: string }) => i.status !== "archived").length
@@ -60,7 +60,7 @@ export default function WorkspaceDashboard() {
 
   // 同步侧边栏选中
   useEffect(() => {
-    if (workspace) localStorage.setItem("knowledgecast_workspace_id", workspace.id);
+    if (workspace) localStorage.setItem("knowledgecast_collection_id", workspace.id);
   }, [workspace]);
 
   async function copyLink(token: string) {
@@ -104,13 +104,13 @@ export default function WorkspaceDashboard() {
       <div>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-sm font-medium uppercase tracking-wide text-gray-500">最近培训页</h2>
-          <Link href={`/workspace/${id}/settings`} className="text-xs text-gray-400 hover:text-gray-600">⚙ 工作集设置</Link>
+          <Link href={`/collections/${id}/settings`} className="text-xs text-gray-400 hover:text-gray-600">⚙ 工作集设置</Link>
         </div>
         {pages.length === 0 ? (
           <div className="rounded-xl border border-dashed border-gray-200 bg-white p-8 text-center">
             <p className="text-sm text-gray-500">还没有培训页</p>
             <p className="mt-1 text-xs text-gray-400 mb-4">点击「整理」选择素材和框架，让 AI 生成第一份培训内容</p>
-            <Link href={`/workspace/${id}/structure`} className="inline-block rounded-lg bg-blue-600 px-4 py-2 text-xs font-medium text-white hover:bg-blue-700">去整理</Link>
+            <Link href={`/collections/${id}/structure`} className="inline-block rounded-lg bg-blue-600 px-4 py-2 text-xs font-medium text-white hover:bg-blue-700">去整理</Link>
           </div>
         ) : (
           <div className="space-y-2">
@@ -133,7 +133,7 @@ export default function WorkspaceDashboard() {
                     className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs text-white hover:bg-blue-700">
                     预览
                   </a>
-                  <Link href={`/workspace/${id}/structure`}
+                  <Link href={`/collections/${id}/structure`}
                     className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs text-gray-500 hover:bg-gray-50">
                     继续编辑
                   </Link>

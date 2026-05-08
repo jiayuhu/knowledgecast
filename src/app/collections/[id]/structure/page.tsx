@@ -3,13 +3,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { FrameworkPicker } from "@/components/workspace/FrameworkPicker";
-import { SlidePreview } from "@/components/workspace/SlidePreview";
-import { IterationPanel } from "@/components/workspace/IterationPanel";
-import { VersionBar } from "@/components/workspace/VersionBar";
-import { CoverageBanner } from "@/components/workspace/CoverageBanner";
+import { FrameworkPicker } from "@/components/collection/FrameworkPicker";
+import { SlidePreview } from "@/components/collection/SlidePreview";
+import { IterationPanel } from "@/components/collection/IterationPanel";
+import { VersionBar } from "@/components/collection/VersionBar";
+import { CoverageBanner } from "@/components/collection/CoverageBanner";
 
-type Workspace = { id: string; name: string; areaId: string | null; userId: string; topic?: string | null };
+type Collection = { id: string; name: string; areaId: string | null; userId: string; topic?: string | null };
 type Fragment = { id: string; sourceType: string; title: string | null; content: string; status: string };
 type Slide = { title: string; bullets: string[]; speakerNotes: string; estimatedMinutes: number };
 type TrainingResult = {
@@ -36,9 +36,9 @@ export default function StructurePage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const [userId] = useState("demo-user");
-  const [workspace, setWorkspace] = useState<Workspace | null>(null);
+  const [workspace, setCollection] = useState<Collection | null>(null);
   const [areaName, setAreaName] = useState("");
-  const [workspaceTopic, setWorkspaceTopic] = useState("");
+  const [workspaceTopic, setCollectionTopic] = useState("");
   const [fragments, setFragments] = useState<Fragment[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [frameworkId, setFrameworkId] = useState<string | null>(null);
@@ -52,18 +52,18 @@ export default function StructurePage() {
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [frameworkSteps, setFrameworkSteps] = useState(0);
 
-  const loadWorkspace = useCallback(() => {
+  const loadCollection = useCallback(() => {
     Promise.all([
-      fetch("/api/workspaces?userId=demo-user"),
+      fetch("/api/collections?userId=demo-user"),
       fetch("/api/areas?userId=demo-user")
     ]).then(async ([wsRes, areaRes]) => {
       const wsData = await wsRes.json();
       const areaData = await areaRes.json();
-      const ws = (wsData.workspaces as Workspace[]).find((w) => w.id === id) ?? null;
-      setWorkspace(ws);
+      const ws = (wsData.collections as Collection[]).find((w) => w.id === id) ?? null;
+      setCollection(ws);
       if (ws) {
-        setWorkspaceTopic(ws.topic ?? "");
-        localStorage.setItem("knowledgecast_workspace_id", ws.id);
+        setCollectionTopic(ws.topic ?? "");
+        localStorage.setItem("knowledgecast_collection_id", ws.id);
         if (ws.areaId) {
           const area = (areaData.areas as { id: string; name: string }[]).find((a) => a.id === ws.areaId);
           setAreaName(area?.name ?? "");
@@ -72,7 +72,7 @@ export default function StructurePage() {
     });
   }, [id]);
 
-  useEffect(() => { loadWorkspace(); }, [loadWorkspace]);
+  useEffect(() => { loadCollection(); }, [loadCollection]);
 
   useEffect(() => {
     if (!workspace) return;
@@ -86,14 +86,14 @@ export default function StructurePage() {
 
   useEffect(() => {
     if (!workspace) return;
-    fetch(`/api/knowledge-items?userId=demo-user&workspaceId=${encodeURIComponent(workspace.id)}&limit=50`)
+    fetch(`/api/knowledge-items?userId=demo-user&collectionId=${encodeURIComponent(workspace.id)}&limit=50`)
       .then((r) => r.json())
       .then((data) => {
         const items = (data.knowledgeItems ?? [] as Fragment[]).filter((f: Fragment) => f.status !== "archived");
         setFragments(items);
         if (items.length === 0) {
           setMessage("当前工作集还没有素材，请先采集素材");
-          setTimeout(() => router.push(`/workspace/${id}/capture`), 1500);
+          setTimeout(() => router.push(`/collections/${id}/capture`), 1500);
         }
       })
       .catch(() => setMessage("加载素材失败"));
@@ -240,7 +240,7 @@ export default function StructurePage() {
                 {fragments.length === 0 ? (
                   <div className="text-center py-6">
                     <p className="text-xs text-gray-400 mb-2">当前工作集还没有素材</p>
-                    <Link href={`/workspace/${id}/capture`} className="text-xs text-blue-600 hover:text-blue-700 font-medium">
+                    <Link href={`/collections/${id}/capture`} className="text-xs text-blue-600 hover:text-blue-700 font-medium">
                       去采集页添加 →
                     </Link>
                   </div>

@@ -4,7 +4,7 @@ import { useState } from "react";
 
 type Props = {
   userId: string;
-  workspaceId: string;
+  collectionId: string;
   onDone: () => void;
 };
 
@@ -32,7 +32,7 @@ function shortUrl(url: string): string {
 
 async function createUrlItem(
   userId: string,
-  workspaceId: string,
+  collectionId: string,
   url: string
 ): Promise<{ id: string; title: string | null; content: string }> {
   const res = await fetch("/api/knowledge-items", {
@@ -40,7 +40,7 @@ async function createUrlItem(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       userId,
-      workspaceId,
+      collectionId,
       sourceType: "url",
       title: null,
       content: url,
@@ -77,7 +77,7 @@ async function patchTitle(userId: string, itemId: string, title: string) {
   });
 }
 
-export function CaptureInput({ userId, workspaceId, onDone }: Props) {
+export function CaptureInput({ userId, collectionId, onDone }: Props) {
   const [content, setContent] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
@@ -105,7 +105,7 @@ export function CaptureInput({ userId, workspaceId, onDone }: Props) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           userId,
-          workspaceId,
+          collectionId,
           sourceType,
           title: null,
           content: input,
@@ -171,7 +171,7 @@ export function CaptureInput({ userId, workspaceId, onDone }: Props) {
 
     async function processOne(url: string) {
       try {
-        const item = await createUrlItem(userId, workspaceId, url);
+        const item = await createUrlItem(userId, collectionId, url);
         if (!item.title) {
           try { await patchTitle(userId, item.id, await generateTitle(item.content)); } catch { /* ignore */ }
         }
