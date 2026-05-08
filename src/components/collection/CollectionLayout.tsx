@@ -7,7 +7,17 @@ import { CollectionNav } from "./CollectionNav";
 type Area = { id: string; name: string; userId: string };
 type Collection = { id: string; name: string; areaId: string | null; userId: string };
 
-export function CollectionLayout({ children }: { children: React.ReactNode }) {
+export function CollectionLayout({
+  children,
+  phase,
+  structurePanel,
+  contextPanel,
+}: {
+  children: React.ReactNode;
+  phase?: string;
+  structurePanel?: React.ReactNode;
+  contextPanel?: React.ReactNode;
+}) {
   const [userId] = useState("demo-user");
   const [area, setArea] = useState<Area | null>(null);
   const [collection, setCollection] = useState<Collection | null>(null);
@@ -53,6 +63,7 @@ export function CollectionLayout({ children }: { children: React.ReactNode }) {
         collectionId={collection?.id}
         collectionName={collection?.name}
         areaName={area?.name}
+        phase={phase}
       />
       <div className="flex flex-1 overflow-hidden">
         <Sidebar
@@ -62,9 +73,19 @@ export function CollectionLayout({ children }: { children: React.ReactNode }) {
           onAreaChange={setArea}
           onCollectionChange={setCollection}
         />
+        {structurePanel && (
+          <aside className="w-56 shrink-0 border-r border-gray-200 bg-white overflow-y-auto">
+            {structurePanel}
+          </aside>
+        )}
         <main className="flex-1 overflow-y-auto">
           {children}
         </main>
+        {contextPanel && (
+          <aside className="w-64 shrink-0 border-l border-gray-200 bg-white overflow-y-auto">
+            {contextPanel}
+          </aside>
+        )}
       </div>
     </div>
   );

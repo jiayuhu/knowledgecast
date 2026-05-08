@@ -26,6 +26,7 @@ type Props = {
   collectionId?: string;
   collectionName?: string;
   areaName?: string;
+  phase?: string;
 };
 
 function UserMenu() {
@@ -74,7 +75,7 @@ function UserMenu() {
   );
 }
 
-export function CollectionNav({ collectionId, collectionName, areaName }: Props) {
+export function CollectionNav({ collectionId, collectionName, areaName, phase }: Props) {
   const pathname = usePathname();
 
   const isUnassigned = pathname === "/unassigned";
