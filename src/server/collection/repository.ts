@@ -9,6 +9,7 @@ export type CollectionRecord = {
   areaId: string | null;
   name: string;
   topic: string | null;
+  phase: string;
   sortOrder: number | null;
   createdAt: Date;
   updatedAt: Date;
@@ -27,6 +28,7 @@ export async function createCollection(userId: string, name: string, areaId?: st
     areaId: areaId ?? null,
     name,
     topic: null,
+    phase: "capture",
     sortOrder: maxOrder + 1,
     createdAt: now,
     updatedAt: now
@@ -61,7 +63,7 @@ export async function getCollection(id: string) {
 
 export async function updateCollection(
   id: string,
-  input: { name?: string; topic?: string | null; areaId?: string | null }
+  input: { name?: string; topic?: string | null; areaId?: string | null; phase?: string }
 ) {
   const db = await getDb();
   const now = new Date();
@@ -69,6 +71,7 @@ export async function updateCollection(
   if (input.name !== undefined) values.name = input.name;
   if (input.topic !== undefined) values.topic = input.topic;
   if (input.areaId !== undefined) values.areaId = input.areaId;
+  if (input.phase !== undefined) values.phase = input.phase;
   await db
     .update(collections)
     .set(values)

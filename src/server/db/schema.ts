@@ -15,6 +15,7 @@ export const collections = sqliteTable("collections", {
   areaId: text("area_id"),
   name: text("name").notNull(),
   topic: text("topic"),
+  phase: text("phase").notNull().default("capture"),
   sortOrder: integer("sort_order").default(0),
   createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
   updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull()

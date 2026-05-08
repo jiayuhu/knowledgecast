@@ -5,7 +5,8 @@ import { deleteCollection, updateCollection } from "@/server/collection/reposito
 const updateSchema = z.object({
   name: z.string().min(1).max(50).optional(),
   topic: z.string().nullable().optional(),
-  areaId: z.string().nullable().optional()
+  areaId: z.string().nullable().optional(),
+  phase: z.enum(["capture", "organize", "create", "publish", "iterate"]).optional()
 });
 
 export async function PATCH(
