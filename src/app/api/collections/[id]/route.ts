@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { deleteCollection, updateCollection } from "@/server/collection/repository";
+import { collectionPhaseSchema } from "@/server/collection/types";
 
 const updateSchema = z.object({
   name: z.string().min(1).max(50).optional(),
   topic: z.string().nullable().optional(),
   areaId: z.string().nullable().optional(),
-  phase: z.enum(["capture", "organize", "create", "publish", "iterate"]).optional()
+  phase: collectionPhaseSchema.optional()
 });
 
 export async function PATCH(

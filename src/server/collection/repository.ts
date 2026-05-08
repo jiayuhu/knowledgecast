@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { and, asc, eq } from "drizzle-orm";
 import { getDb } from "../db/client";
 import { collections, knowledgeItems } from "../db/schema";
+import type { CollectionPhase } from "./types";
 
 export type CollectionRecord = {
   id: string;
@@ -9,7 +10,7 @@ export type CollectionRecord = {
   areaId: string | null;
   name: string;
   topic: string | null;
-  phase: string;
+  phase: CollectionPhase;
   sortOrder: number | null;
   createdAt: Date;
   updatedAt: Date;
@@ -63,7 +64,7 @@ export async function getCollection(id: string) {
 
 export async function updateCollection(
   id: string,
-  input: { name?: string; topic?: string | null; areaId?: string | null; phase?: string }
+  input: { name?: string; topic?: string | null; areaId?: string | null; phase?: CollectionPhase }
 ) {
   const db = await getDb();
   const now = new Date();

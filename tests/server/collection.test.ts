@@ -28,6 +28,7 @@ describe("collection repository", () => {
 
     expect(result.map((item) => item.id)).toEqual([first.id, second.id]);
     expect(result.map((item) => item.name)).toEqual(["First", "Second"]);
+    expect(first.phase).toBe("capture");
   });
 
   it("updates collection name, topic, and area", async () => {
@@ -42,6 +43,26 @@ describe("collection repository", () => {
     const [updated] = await listCollections("user_1", "area_2");
     expect(updated.name).toBe("Published");
     expect(updated.topic).toBe("Onboarding");
+  });
+
+  it("updates collection phase", async () => {
+    const created = await createCollection("user_1", "Phase Test", "area_1");
+
+    await updateCollection(created.id, { phase: "publish" });
+
+    const [updated] = await listCollections("user_1", "area_1");
+    expect(updated.phase).toBe("publish");
+  });
+
+  it("allows all valid phase values", async () => {
+    const phases = ["capture", "organize", "create", "publish", "iterate"] as const;
+    const created = await createCollection("user_1", "All Phases", "area_1");
+
+    for (const phase of phases) {
+      await updateCollection(created.id, { phase });
+      const [updated] = await listCollections("user_1", "area_1");
+      expect(updated.phase).toBe(phase);
+    }
   });
 
   it("deleting a collection leaves materials unassigned", async () => {
