@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { updateTrainingPage, saveVersionSnapshot, listRecentTrainingPages } from "@/server/training/repository";
+import { updateTrainingPage, saveVersionSnapshot, getTrainingPageByIdForUser } from "@/server/training/repository";
 
 export async function PATCH(
   request: Request,
@@ -21,13 +21,9 @@ export async function PATCH(
     }
 
     // Check ownership before any writes
-    const pages = await listRecentTrainingPages(userId, 100);
-    const existingPage = pages.find(p => p.id === id);
+    const existingPage = await getTrainingPageByIdForUser(id, userId);
     if (!existingPage) {
       return NextResponse.json({ error: "培训页不存在" }, { status: 404 });
-    }
-    if (existingPage.userId !== userId) {
-      return NextResponse.json({ error: "无权修改此培训页" }, { status: 403 });
     }
 
     // On restore, save the current state as a snapshot so user can undo

@@ -166,6 +166,17 @@ export async function listRecentTrainingPages(userId: string, limit = 5, collect
   });
 }
 
+export async function getTrainingPageByIdForUser(id: string, userId: string) {
+  const db = await getDb();
+  const rows = await db
+    .select()
+    .from(trainingPages)
+    .where(and(eq(trainingPages.id, id), eq(trainingPages.userId, userId)))
+    .limit(1)
+    .all();
+  return rows[0] ?? null;
+}
+
 export async function saveVersionSnapshot(input: {
   trainingPageId: string;
   version: number;
