@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { CollectionLayout } from "@/components/collection/CollectionLayout";
+import { StructurePanel } from "@/components/collection/StructurePanel";
+import { TaskContextPanel } from "@/components/collection/TaskContextPanel";
 import { CaptureWorkspace } from "@/components/collection/phases/CaptureWorkspace";
 import { OrganizeWorkspace } from "@/components/collection/phases/OrganizeWorkspace";
 import { CreateWorkspace } from "@/components/collection/phases/CreateWorkspace";
@@ -76,7 +78,7 @@ export default function TaskPage() {
 
   if (loading) {
     return (
-      <CollectionLayout phase={phase}>
+      <CollectionLayout phase={phase} structurePanel={<StructurePanel phase={phase} />} contextPanel={<TaskContextPanel phase={phase} />}>
         <main className="px-8 py-8"><p className="text-sm text-gray-400">加载中...</p></main>
       </CollectionLayout>
     );
@@ -84,14 +86,14 @@ export default function TaskPage() {
 
   if (!collection) {
     return (
-      <CollectionLayout phase={phase}>
+      <CollectionLayout phase={phase} structurePanel={<StructurePanel phase={phase} />} contextPanel={<TaskContextPanel phase={phase} />}>
         <main className="px-8 py-8"><p className="text-sm text-gray-400">工作集未找到</p></main>
       </CollectionLayout>
     );
   }
 
   return (
-    <CollectionLayout phase={phase}>
+    <CollectionLayout phase={phase} structurePanel={<StructurePanel phase={phase} />} contextPanel={<TaskContextPanel phase={phase} />}>
       {renderWorkspace()}
     </CollectionLayout>
   );
