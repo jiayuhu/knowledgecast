@@ -12,12 +12,12 @@ type Props = {
   activeAreaId: string | null;
   activeCollectionId: string | null;
   onAreaChange: (area: Area) => void;
-  onCollectionChange: (ws: Collection) => void;
+  onCollectionChange: (collection: Collection) => void;
 };
 
-function emitCollectionChange(ws: Collection) {
-  localStorage.setItem("knowledgecast_collection_id", ws.id);
-  window.dispatchEvent(new CustomEvent("collection-changed", { detail: ws }));
+function emitCollectionChange(collection: Collection) {
+  localStorage.setItem("knowledgecast_collection_id", collection.id);
+  window.dispatchEvent(new CustomEvent("collection-changed", { detail: collection }));
 }
 
 export function Sidebar({
@@ -30,15 +30,17 @@ export function Sidebar({
   const router = useRouter();
   const pathname = usePathname();
   const [areas, setAreas] = useState<Area[]>([]);
-  const [workspaces, setCollections] = useState<Record<string, Collection[]>>({});
+  const [collections, setCollections] = useState<Record<string, Collection[]>>({});
   const [collapsedAreas, setCollapsedAreas] = useState<Set<string>>(new Set());
   const [creatingArea, setCreatingArea] = useState(false);
-  const [creatingWs, setCreatingWs] = useState<string | null>(null);
+  const [creatingCollection, setCreatingCollection] = useState<string | null>(null);
   const [newName, setNewName] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const menuRef = useRef<HTMLDivElement>(null);
-  const [dragItem, setDragItem] = useState<{ type: "area"; id: string } | { type: "ws"; id: string; areaId: string } | null>(null);
+  const [dragItem, setDragItem] = useState<
+    { type: "area"; id: string } | { type: "collection"; id: string; areaId: string } | null
+  >(null);
 
   async function handleReorderAreas(ordered: Area[]) {
     setAreas(ordered);
@@ -54,7 +56,7 @@ export function Sidebar({
     await fetch("/api/collections", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ orderedIds: ordered.map((w) => w.id) })
+      body: JSON.stringify({ orderedIds: ordered.map((collection) => collection.id) })
     });
   }
 
@@ -74,16 +76,16 @@ export function Sidebar({
       next.splice(targetIdx, 0, moved);
       handleReorderAreas(next);
     }
-    if (dragItem.type === "ws" && dragItem.areaId !== targetAreaId) {
+    if (dragItem.type === "collection" && dragItem.areaId !== targetAreaId) {
       // 跨工作区移动工作集
       const srcArea = dragItem.areaId;
-      const srcWs = workspaces[srcArea] ?? [];
-      const ws = srcWs.find((w) => w.id === dragItem.id);
-      if (!ws) return;
-      const nextSrc = srcWs.filter((w) => w.id !== dragItem.id);
-      const nextDst = [...(workspaces[targetAreaId] ?? []), { ...ws, areaId: targetAreaId }];
+      const sourceCollections = collections[srcArea] ?? [];
+      const collection = sourceCollections.find((item) => item.id === dragItem.id);
+      if (!collection) return;
+      const nextSrc = sourceCollections.filter((item) => item.id !== dragItem.id);
+      const nextDst = [...(collections[targetAreaId] ?? []), { ...collection, areaId: targetAreaId }];
       setCollections((prev) => ({ ...prev, [srcArea]: nextSrc, [targetAreaId]: nextDst }));
-      fetch(`/api/collections/${ws.id}`, {
+      fetch(`/api/collections/${collection.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ areaId: targetAreaId })
@@ -92,12 +94,12 @@ export function Sidebar({
     setDragItem(null);
   }
 
-  function onDropWs(targetWsId: string, targetAreaId: string) {
-    if (!dragItem || dragItem.type !== "ws") return;
-    if (dragItem.id === targetWsId) { setDragItem(null); return; }
-    const list = [...(workspaces[targetAreaId] ?? [])];
-    const idx = list.findIndex((w) => w.id === dragItem.id);
-    const targetIdx = list.findIndex((w) => w.id === targetWsId);
+  function onDropCollection(targetCollectionId: string, targetAreaId: string) {
+    if (!dragItem || dragItem.type !== "collection") return;
+    if (dragItem.id === targetCollectionId) { setDragItem(null); return; }
+    const list = [...(collections[targetAreaId] ?? [])];
+    const idx = list.findIndex((item) => item.id === dragItem.id);
+    const targetIdx = list.findIndex((item) => item.id === targetCollectionId);
     if (idx < 0 || targetIdx < 0) { setDragItem(null); return; }
     const [moved] = list.splice(idx, 1);
     list.splice(targetIdx, 0, moved);
@@ -115,24 +117,24 @@ export function Sidebar({
       onAreaChange(areaList[0]);
     }
 
-    const wsMap: Record<string, Collection[]> = {};
-    let firstWs: Collection | null = null;
+    const collectionMap: Record<string, Collection[]> = {};
+    let firstCollection: Collection | null = null;
     for (const area of areaList) {
-      const wsRes = await fetch(
+      const collectionRes = await fetch(
         `/api/collections?userId=${encodeURIComponent(userId)}&areaId=${encodeURIComponent(area.id)}`
       );
-      const wsData = await wsRes.json();
-      wsMap[area.id] = (wsData.collections ?? []) as Collection[];
-      if (!firstWs && wsMap[area.id].length > 0) {
-        firstWs = wsMap[area.id][0];
+      const collectionData = await collectionRes.json();
+      collectionMap[area.id] = (collectionData.collections ?? []) as Collection[];
+      if (!firstCollection && collectionMap[area.id].length > 0) {
+        firstCollection = collectionMap[area.id][0];
       }
     }
-    setCollections(wsMap);
+    setCollections(collectionMap);
 
     // 首次加载，无选中工作集时，同步状态但不跳转（服务端已处理跳转）
-    if (!activeCollectionId && firstWs) {
-      onCollectionChange(firstWs);
-      emitCollectionChange(firstWs);
+    if (!activeCollectionId && firstCollection) {
+      onCollectionChange(firstCollection);
+      emitCollectionChange(firstCollection);
     }
   }, [userId, activeAreaId]);
 
@@ -140,7 +142,7 @@ export function Sidebar({
     loadData();
   }, []);
 
-  // Reload workspaces when area changes
+  // Reload collections when area changes
   useEffect(() => {
     const handler = () => loadData();
     window.addEventListener("sidebar-refresh", handler);
@@ -168,7 +170,7 @@ export function Sidebar({
     }
   }
 
-  async function handleCreateWs(areaId: string) {
+  async function handleCreateCollection(areaId: string) {
     if (!newName.trim()) return;
     const res = await fetch("/api/collections", {
       method: "POST",
@@ -177,20 +179,20 @@ export function Sidebar({
     });
     if (res.ok) {
       const data = await res.json();
-      const ws = data.collection as Collection;
+      const collection = data.collection as Collection;
       setCollections((prev) => ({
         ...prev,
-        [areaId]: [...(prev[areaId] ?? []), ws]
+        [areaId]: [...(prev[areaId] ?? []), collection]
       }));
-      onCollectionChange(ws);
-      emitCollectionChange(ws);
+      onCollectionChange(collection);
+      emitCollectionChange(collection);
       setNewName("");
-      setCreatingWs(null);
-      router.push(`/collections/${ws.id}`);
+      setCreatingCollection(null);
+      router.push(`/collections/${collection.id}`);
     }
   }
 
-  async function handleRename(type: "area" | "ws", id: string) {
+  async function handleRename(type: "area" | "collection", id: string) {
     if (!editName.trim()) { setEditingId(null); return; }
     const base = type === "area" ? "areas" : "collections";
     await fetch(`/api/${base}/${id}`, {
@@ -201,21 +203,21 @@ export function Sidebar({
     if (type === "area") {
       setAreas((prev) => prev.map((a) => (a.id === id ? { ...a, name: editName.trim() } : a)));
     } else {
-      const updatedActiveCollection =
+      const currentActiveCollection =
         activeCollectionId === id
-          ? Object.values(workspaces).flat().find((w) => w.id === id) ?? null
+          ? Object.values(collections).flat().find((item) => item.id === id) ?? null
           : null;
       setCollections((prev) => {
         const next = { ...prev };
         for (const aid of Object.keys(next)) {
-          next[aid] = next[aid].map((w) =>
-            w.id === id ? { ...w, name: editName.trim() } : w
+          next[aid] = next[aid].map((item) =>
+            item.id === id ? { ...item, name: editName.trim() } : item
           );
         }
         return next;
       });
-      if (updatedActiveCollection) {
-        const renamed = { ...updatedActiveCollection, name: editName.trim() };
+      if (currentActiveCollection) {
+        const renamed = { ...currentActiveCollection, name: editName.trim() };
         onCollectionChange(renamed);
         emitCollectionChange(renamed);
       }
@@ -223,7 +225,7 @@ export function Sidebar({
     setEditingId(null);
   }
 
-  async function handleDelete(type: "area" | "ws", id: string) {
+  async function handleDelete(type: "area" | "collection", id: string) {
     const label = type === "area" ? "确定删除此工作区？其下的工作集仍会保留。" : "确定删除此工作集？素材不会丢失但会失去归属。";
     if (!confirm(label)) return;
     const base = type === "area" ? "areas" : "collections";
@@ -239,21 +241,21 @@ export function Sidebar({
       setCollections((prev) => {
         const next = { ...prev };
         for (const aid of Object.keys(next)) {
-          next[aid] = next[aid].filter((w) => w.id !== id);
+          next[aid] = next[aid].filter((item) => item.id !== id);
         }
         return next;
       });
     }
   }
 
-  function selectCollection(ws: Collection) {
-    onCollectionChange(ws);
-    if (ws.areaId) {
-      const area = areas.find((a) => a.id === ws.areaId);
+  function selectCollection(collection: Collection) {
+    onCollectionChange(collection);
+    if (collection.areaId) {
+      const area = areas.find((a) => a.id === collection.areaId);
       if (area) onAreaChange(area);
     }
-    emitCollectionChange(ws);
-    router.push(`/collections/${ws.id}`);
+    emitCollectionChange(collection);
+    router.push(`/collections/${collection.id}`);
   }
 
   return (
@@ -261,7 +263,7 @@ export function Sidebar({
       <div className="flex-1 overflow-y-auto px-3 py-4 space-y-3">
         {areas.map((area) => {
           const collapsed = collapsedAreas.has(area.id);
-          const areaWs = workspaces[area.id] ?? [];
+          const areaCollections = collections[area.id] ?? [];
           const editing = editingId === area.id;
 
           return (
@@ -333,19 +335,19 @@ export function Sidebar({
                 )}
               </div>
 
-              {/* Workpaces under this area */}
+              {/* Collections under this area */}
               {!collapsed && (
                 <div className="ml-4 space-y-0.5">
-                  {areaWs.map((ws) => {
-                    const active = activeCollectionId === ws.id && pathname !== "/unassigned";
-                    const editing = editingId === ws.id;
+                  {areaCollections.map((collection) => {
+                    const active = activeCollectionId === collection.id && pathname !== "/unassigned";
+                    const editing = editingId === collection.id;
                     return (
-                      <div key={ws.id}
+                      <div key={collection.id}
                         className="group flex items-center rounded-lg hover:bg-gray-50 cursor-grab active:cursor-grabbing"
                         draggable
-                        onDragStart={(e) => { e.stopPropagation(); setDragItem({ type: "ws", id: ws.id, areaId: area.id }); }}
+                        onDragStart={(e) => { e.stopPropagation(); setDragItem({ type: "collection", id: collection.id, areaId: area.id }); }}
                         onDragOver={onDragOver}
-                        onDrop={() => onDropWs(ws.id, area.id)}
+                        onDrop={() => onDropCollection(collection.id, area.id)}
                         onDragEnd={() => setDragItem(null)}
                       >
                         {editing ? (
@@ -354,37 +356,37 @@ export function Sidebar({
                             value={editName}
                             onChange={(e) => setEditName(e.target.value)}
                             onKeyDown={(e) => {
-                              if (e.key === "Enter") handleRename("ws", ws.id);
+                              if (e.key === "Enter") handleRename("collection", collection.id);
                               if (e.key === "Escape") setEditingId(null);
                             }}
-                            onBlur={() => handleRename("ws", ws.id)}
+                            onBlur={() => handleRename("collection", collection.id)}
                             className="flex-1 rounded border border-blue-300 px-1.5 py-0.5 text-xs outline-none mx-2"
                           />
                         ) : (
                           <button
-                            onClick={() => selectCollection(ws)}
+                            onClick={() => selectCollection(collection)}
                             className={`flex-1 rounded-md px-2 py-1.5 text-left text-sm transition ${
                               active
                                 ? "bg-blue-50 text-blue-700 font-medium"
                                 : "text-gray-600"
                             }`}
                           >
-                            {ws.name}
+                            {collection.name}
                           </button>
                         )}
                         {!editing && (
                           <>
                             <button
-                              onClick={() => { setEditingId(ws.id); setEditName(ws.name); }}
+                              onClick={() => { setEditingId(collection.id); setEditName(collection.name); }}
                               className="hidden group-hover:block p-0.5 text-gray-300 hover:text-gray-500"
                             >
                               <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                               </svg>
                             </button>
-                            {areaWs.length > 1 && (
+                            {areaCollections.length > 1 && (
                               <button
-                                onClick={() => handleDelete("ws", ws.id)}
+                                onClick={() => handleDelete("collection", collection.id)}
                                 className="hidden group-hover:block p-0.5 text-gray-300 hover:text-red-500 mr-1"
                               >
                                 <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -398,25 +400,25 @@ export function Sidebar({
                     );
                   })}
 
-                  {/* New workspace input */}
-                  {creatingWs === area.id ? (
+                  {/* New collection input */}
+                  {creatingCollection === area.id ? (
                     <div className="flex gap-1 px-2">
                       <input
                         autoFocus
                         value={newName}
                         onChange={(e) => setNewName(e.target.value)}
                         onKeyDown={(e) => {
-                          if (e.key === "Enter") handleCreateWs(area.id);
-                          if (e.key === "Escape") { setCreatingWs(null); setNewName(""); }
+                          if (e.key === "Enter") handleCreateCollection(area.id);
+                          if (e.key === "Escape") { setCreatingCollection(null); setNewName(""); }
                         }}
-                        onBlur={() => { setCreatingWs(null); setNewName(""); }}
+                        onBlur={() => { setCreatingCollection(null); setNewName(""); }}
                         placeholder="工作集名称"
                         className="flex-1 rounded border border-blue-300 px-1.5 py-0.5 text-xs outline-none"
                       />
                     </div>
                   ) : (
                     <button
-                      onClick={() => setCreatingWs(area.id)}
+                      onClick={() => setCreatingCollection(area.id)}
                       className="w-full rounded-md px-2 py-1 text-left text-xs text-gray-400 hover:bg-gray-50 hover:text-gray-600"
                     >
                       + 新建工作集

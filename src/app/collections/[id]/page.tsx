@@ -24,7 +24,7 @@ const cards = [
 
 export default function CollectionDashboard() {
   const { id } = useParams<{ id: string }>();
-  const [workspace, setCollection] = useState<Collection | null>(null);
+  const [collection, setCollection] = useState<Collection | null>(null);
   const [areaName, setAreaName] = useState("");
   const [fragmentCount, setFragmentCount] = useState(0);
   const [pages, setPages] = useState<TrainingPageItem[]>([]);
@@ -34,13 +34,13 @@ export default function CollectionDashboard() {
     Promise.all([
       fetch("/api/collections?userId=demo-user"),
       fetch("/api/areas?userId=demo-user")
-    ]).then(async ([wsRes, areaRes]) => {
-      const wsData = await wsRes.json();
+    ]).then(async ([collectionRes, areaRes]) => {
+      const collectionData = await collectionRes.json();
       const areaData = await areaRes.json();
-      const ws = (wsData.collections as Collection[]).find((w) => w.id === id);
-      setCollection(ws ?? null);
-      if (ws?.areaId) {
-        const area = (areaData.areas as { id: string; name: string }[]).find((a) => a.id === ws.areaId);
+      const nextCollection = (collectionData.collections as Collection[]).find((item) => item.id === id);
+      setCollection(nextCollection ?? null);
+      if (nextCollection?.areaId) {
+        const area = (areaData.areas as { id: string; name: string }[]).find((a) => a.id === nextCollection.areaId);
         setAreaName(area?.name ?? "");
       }
     });
@@ -60,8 +60,8 @@ export default function CollectionDashboard() {
 
   // 同步侧边栏选中
   useEffect(() => {
-    if (workspace) localStorage.setItem("knowledgecast_collection_id", workspace.id);
-  }, [workspace]);
+    if (collection) localStorage.setItem("knowledgecast_collection_id", collection.id);
+  }, [collection]);
 
   async function copyLink(token: string) {
     await navigator.clipboard.writeText(`${window.location.origin}/share/${token}?preview=1`);
@@ -69,7 +69,7 @@ export default function CollectionDashboard() {
     setTimeout(() => setCopiedToken(null), 2000);
   }
 
-  if (!workspace) {
+  if (!collection) {
     return <main className="px-8 py-8"><p className="text-sm text-gray-400">加载中...</p></main>;
   }
 
@@ -77,8 +77,8 @@ export default function CollectionDashboard() {
     <main className="px-8 py-8">
       <div className="mb-8">
         {areaName && <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">{areaName}</p>}
-        <h1 className="text-2xl font-bold tracking-tight text-gray-900">{workspace.name}</h1>
-        {workspace.topic && <p className="mt-1 text-sm text-gray-500">{workspace.topic}</p>}
+        <h1 className="text-2xl font-bold tracking-tight text-gray-900">{collection.name}</h1>
+        {collection.topic && <p className="mt-1 text-sm text-gray-500">{collection.topic}</p>}
         <div className="mt-3 flex gap-4 text-sm text-gray-500">
           <span>素材 {fragmentCount}</span>
           <span>培训页 {pages.length}</span>

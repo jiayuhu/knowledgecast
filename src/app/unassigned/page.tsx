@@ -17,7 +17,7 @@ type Collection = { id: string; name: string; areaId: string | null; userId: str
 export default function OrphanedPage() {
   const router = useRouter();
   const [fragments, setFragments] = useState<Fragment[]>([]);
-  const [workspaces, setCollections] = useState<Collection[]>([]);
+  const [collections, setCollections] = useState<Collection[]>([]);
   const [loading, setLoading] = useState(true);
   const [reassigning, setReassigning] = useState<string | null>(null);
   const [message, setMessage] = useState("");
@@ -98,8 +98,8 @@ export default function OrphanedPage() {
                 className="shrink-0 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs text-gray-600 outline-none focus:border-blue-400"
               >
                 <option value="">转移到…</option>
-                {workspaces.map((ws) => (
-                  <option key={ws.id} value={ws.id}>{ws.name}</option>
+                {collections.map((collection) => (
+                  <option key={collection.id} value={collection.id}>{collection.name}</option>
                 ))}
               </select>
             </div>

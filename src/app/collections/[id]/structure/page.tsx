@@ -36,9 +36,9 @@ export default function StructurePage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const [userId] = useState("demo-user");
-  const [workspace, setCollection] = useState<Collection | null>(null);
+  const [collection, setCollection] = useState<Collection | null>(null);
   const [areaName, setAreaName] = useState("");
-  const [workspaceTopic, setCollectionTopic] = useState("");
+  const [collectionTopic, setCollectionTopic] = useState("");
   const [fragments, setFragments] = useState<Fragment[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [frameworkId, setFrameworkId] = useState<string | null>(null);
@@ -56,16 +56,16 @@ export default function StructurePage() {
     Promise.all([
       fetch("/api/collections?userId=demo-user"),
       fetch("/api/areas?userId=demo-user")
-    ]).then(async ([wsRes, areaRes]) => {
-      const wsData = await wsRes.json();
+    ]).then(async ([collectionRes, areaRes]) => {
+      const collectionData = await collectionRes.json();
       const areaData = await areaRes.json();
-      const ws = (wsData.collections as Collection[]).find((w) => w.id === id) ?? null;
-      setCollection(ws);
-      if (ws) {
-        setCollectionTopic(ws.topic ?? "");
-        localStorage.setItem("knowledgecast_collection_id", ws.id);
-        if (ws.areaId) {
-          const area = (areaData.areas as { id: string; name: string }[]).find((a) => a.id === ws.areaId);
+      const nextCollection = (collectionData.collections as Collection[]).find((item) => item.id === id) ?? null;
+      setCollection(nextCollection);
+      if (nextCollection) {
+        setCollectionTopic(nextCollection.topic ?? "");
+        localStorage.setItem("knowledgecast_collection_id", nextCollection.id);
+        if (nextCollection.areaId) {
+          const area = (areaData.areas as { id: string; name: string }[]).find((a) => a.id === nextCollection.areaId);
           setAreaName(area?.name ?? "");
         }
       }
@@ -75,18 +75,18 @@ export default function StructurePage() {
   useEffect(() => { loadCollection(); }, [loadCollection]);
 
   useEffect(() => {
-    if (!workspace) return;
-    const cached = localStorage.getItem(`kc_result_${workspace.id}`);
+    if (!collection) return;
+    const cached = localStorage.getItem(`kc_result_${collection.id}`);
     if (cached) { try { setResult(JSON.parse(cached)); } catch { setResult(null); } }
-  }, [workspace]);
+  }, [collection]);
 
   useEffect(() => {
-    if (result && workspace) localStorage.setItem(`kc_result_${workspace.id}`, JSON.stringify(result));
-  }, [result, workspace]);
+    if (result && collection) localStorage.setItem(`kc_result_${collection.id}`, JSON.stringify(result));
+  }, [result, collection]);
 
   useEffect(() => {
-    if (!workspace) return;
-    fetch(`/api/knowledge-items?userId=demo-user&collectionId=${encodeURIComponent(workspace.id)}&limit=50`)
+    if (!collection) return;
+    fetch(`/api/knowledge-items?userId=demo-user&collectionId=${encodeURIComponent(collection.id)}&limit=50`)
       .then((r) => r.json())
       .then((data) => {
         const items = (data.knowledgeItems ?? [] as Fragment[]).filter((f: Fragment) => f.status !== "archived");
@@ -97,7 +97,7 @@ export default function StructurePage() {
         }
       })
       .catch(() => setMessage("加载素材失败"));
-  }, [workspace]);
+  }, [collection, id, router]);
 
   useEffect(() => {
     if (!frameworkId) { setFrameworkSteps(0); return; }
@@ -114,12 +114,12 @@ export default function StructurePage() {
   function toggleFragment(fid: string) { setSelectedIds((prev) => prev.includes(fid) ? prev.filter((i) => i !== fid) : [...prev, fid]); }
 
   async function handleGenerate() {
-    if (!frameworkId || !workspace) { setMessage("请先选择工作集和培训框架"); return; }
+    if (!frameworkId || !collection) { setMessage("请先选择工作集和培训框架"); return; }
     setGenerating(true); setMessage("");
     try {
       const res = await fetch("/api/training-pages/generate", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId, knowledgeItemIds: selectedIds, frameworkId, topic: workspaceTopic || undefined })
+        body: JSON.stringify({ userId, knowledgeItemIds: selectedIds, frameworkId, topic: collectionTopic || undefined })
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
@@ -227,7 +227,7 @@ export default function StructurePage() {
     <main className="px-8 py-8">
       <h1 className="text-2xl font-bold tracking-tight text-gray-900 mb-2">整理内容</h1>
       <p className="text-sm text-gray-500 mb-6">选择培训框架，选中素材，AI 将其组织成结构化幻灯片</p>
-      {workspace ? (
+      {collection ? (
         <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
           <aside className="space-y-6">
             <FrameworkPicker userId={userId} selectedId={frameworkId} onSelect={setFrameworkId} />

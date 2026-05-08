@@ -10,7 +10,7 @@ type TrainingPageItem = { id: string; title: string; framework: string | null; t
 export default function SettingsPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const [workspace, setCollection] = useState<Collection | null>(null);
+  const [collection, setCollection] = useState<Collection | null>(null);
   const [areaName, setAreaName] = useState("");
   const [areas, setAreas] = useState<Area[]>([]);
   const [name, setName] = useState("");
@@ -28,9 +28,13 @@ export default function SettingsPage() {
     fetch("/api/collections?userId=demo-user")
       .then((r) => r.json())
       .then((data) => {
-        const ws = (data.collections as Collection[]).find((w) => w.id === id) ?? null;
-        setCollection(ws);
-        if (ws) { setName(ws.name); setTopic(ws.topic ?? ""); setAreaId(ws.areaId ?? ""); }
+        const nextCollection = (data.collections as Collection[]).find((item) => item.id === id) ?? null;
+        setCollection(nextCollection);
+        if (nextCollection) {
+          setName(nextCollection.name);
+          setTopic(nextCollection.topic ?? "");
+          setAreaId(nextCollection.areaId ?? "");
+        }
       });
 
     fetch("/api/areas?userId=demo-user")
@@ -39,32 +43,33 @@ export default function SettingsPage() {
   }, [id]);
 
   useEffect(() => {
-    if (workspace?.areaId && areas.length > 0) {
-      const area = areas.find((a) => a.id === workspace.areaId);
+    if (collection?.areaId && areas.length > 0) {
+      const area = areas.find((a) => a.id === collection.areaId);
       setAreaName(area?.name ?? "");
     }
-  }, [workspace, areas]);
+  }, [collection, areas]);
 
   useEffect(() => {
-    if (!workspace) return;
-    fetch(`/api/knowledge-items?userId=demo-user&collectionId=${encodeURIComponent(workspace.id)}&limit=100`)
+    if (!collection) return;
+    fetch(`/api/knowledge-items?userId=demo-user&collectionId=${encodeURIComponent(collection.id)}&limit=100`)
       .then((r) => r.json())
       .then((data) => setFragmentCount((data.knowledgeItems ?? []).filter((i: { status: string }) => i.status !== "archived").length));
     fetch("/api/training-pages?userId=demo-user&limit=20")
       .then((r) => r.json())
       .then((data) => setTrainingPages(data.trainingPages ?? []));
-  }, [workspace]);
+  }, [collection]);
 
   async function handleSave() {
-    if (!workspace || !name.trim()) return;
+    if (!collection || !name.trim()) return;
     setSaving(true);
-    await fetch(`/api/collections/${workspace.id}`, {
+    await fetch(`/api/collections/${collection.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name: name.trim(), topic: topic.trim() || null, areaId: areaId || null })
     });
-    setCollection({ ...workspace, name: name.trim(), topic: topic.trim() || null });
-    window.dispatchEvent(new CustomEvent("collection-changed", { detail: { ...workspace, name: name.trim(), topic: topic.trim() || null } }));
+    const updatedCollection = { ...collection, name: name.trim(), topic: topic.trim() || null };
+    setCollection(updatedCollection);
+    window.dispatchEvent(new CustomEvent("collection-changed", { detail: updatedCollection }));
     window.dispatchEvent(new CustomEvent("sidebar-refresh"));
     setSaving(false);
     setMessage("已保存");
@@ -72,14 +77,14 @@ export default function SettingsPage() {
   }
 
   async function handleDelete() {
-    if (!workspace) return;
+    if (!collection) return;
     setDeleting(true);
-    await fetch(`/api/collections/${workspace.id}`, { method: "DELETE" });
+    await fetch(`/api/collections/${collection.id}`, { method: "DELETE" });
     window.dispatchEvent(new CustomEvent("sidebar-refresh"));
     router.push("/unassigned");
   }
 
-  if (!workspace) return <main className="mx-auto max-w-2xl px-8 py-8"><p className="text-sm text-gray-400">加载中...</p></main>;
+  if (!collection) return <main className="mx-auto max-w-2xl px-8 py-8"><p className="text-sm text-gray-400">加载中...</p></main>;
 
   return (
     <main className="px-8 py-8">
@@ -138,7 +143,7 @@ export default function SettingsPage() {
         ) : (
           <div className="rounded-lg border border-red-300 bg-white p-4">
             <p className="text-sm font-medium text-gray-900 mb-3">
-              请输入工作集名称 <span className="text-red-600 font-bold">{workspace.name}</span> 以确认删除：
+              请输入工作集名称 <span className="text-red-600 font-bold">{collection.name}</span> 以确认删除：
             </p>
             <div className="flex gap-2">
               <input
@@ -156,7 +161,7 @@ export default function SettingsPage() {
               </button>
               <button
                 onClick={handleDelete}
-                disabled={deleteConfirmName !== workspace.name || deleting}
+                disabled={deleteConfirmName !== collection.name || deleting}
                 className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 transition disabled:opacity-50"
               >
                 {deleting ? "删除中..." : "确认删除"}

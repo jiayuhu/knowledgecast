@@ -11,7 +11,7 @@ type Area = { id: string; name: string };
 export default function CapturePage() {
   const { id } = useParams<{ id: string }>();
   const [userId] = useState("demo-user");
-  const [workspace, setCollection] = useState<Collection | null>(null);
+  const [collection, setCollection] = useState<Collection | null>(null);
   const [areaName, setAreaName] = useState("");
   const [refreshKey, setRefreshKey] = useState(0);
 
@@ -20,19 +20,19 @@ export default function CapturePage() {
       fetch(`/api/collections?userId=demo-user`),
       fetch("/api/areas?userId=demo-user")
     ])
-      .then(async ([wsRes, areaRes]) => {
-        const wsData = await wsRes.json();
+      .then(async ([collectionRes, areaRes]) => {
+        const collectionData = await collectionRes.json();
         const areaData = await areaRes.json();
-        const ws = (wsData.collections as Collection[]).find((w) => w.id === id);
-        setCollection(ws ?? null);
-        if (ws?.areaId) {
-          const area = (areaData.areas as Area[]).find((a) => a.id === ws.areaId);
+        const nextCollection = (collectionData.collections as Collection[]).find((item) => item.id === id);
+        setCollection(nextCollection ?? null);
+        if (nextCollection?.areaId) {
+          const area = (areaData.areas as Area[]).find((a) => a.id === nextCollection.areaId);
           setAreaName(area?.name ?? "");
         }
-        if (ws) localStorage.setItem("knowledgecast_collection_id", ws.id);
+        if (nextCollection) localStorage.setItem("knowledgecast_collection_id", nextCollection.id);
       })
       .catch(() => {
-        // 加载失败，workspace 保持 null
+        // 加载失败，collection 保持 null
       });
   }, [id]);
 
@@ -44,10 +44,10 @@ export default function CapturePage() {
     <main className="px-8 py-8">
       <h1 className="text-2xl font-bold tracking-tight text-gray-900 mb-2">采集素材</h1>
       <p className="text-sm text-gray-500 mb-6">粘贴碎片知识、链接或 Markdown，系统自动识别类型并存入当前工作集</p>
-      {workspace ? (
+      {collection ? (
         <>
-          <CaptureInput userId={userId} collectionId={workspace.id} onDone={handleCaptureDone} />
-          <FragmentList key={refreshKey} userId={userId} collectionId={workspace.id} />
+          <CaptureInput userId={userId} collectionId={collection.id} onDone={handleCaptureDone} />
+          <FragmentList key={refreshKey} userId={userId} collectionId={collection.id} />
         </>
       ) : (
         <div className="rounded-xl border border-dashed border-gray-300 bg-white p-12 text-center">

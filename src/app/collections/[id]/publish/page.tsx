@@ -14,7 +14,7 @@ type TrainingPageItem = {
 export default function PublishPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const [workspace, setCollection] = useState<Collection | null>(null);
+  const [collection, setCollection] = useState<Collection | null>(null);
   const [areaName, setAreaName] = useState("");
   const [pages, setPages] = useState<TrainingPageItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -24,13 +24,13 @@ export default function PublishPage() {
     Promise.all([
       fetch("/api/collections?userId=demo-user"),
       fetch("/api/areas?userId=demo-user")
-    ]).then(async ([wsRes, areaRes]) => {
-      const wsData = await wsRes.json();
+    ]).then(async ([collectionRes, areaRes]) => {
+      const collectionData = await collectionRes.json();
       const areaData = await areaRes.json();
-      const ws = (wsData.collections as Collection[]).find((w) => w.id === id);
-      setCollection(ws ?? null);
-      if (ws?.areaId) {
-        const area = (areaData.areas as { id: string; name: string }[]).find((a) => a.id === ws.areaId);
+      const nextCollection = (collectionData.collections as Collection[]).find((item) => item.id === id);
+      setCollection(nextCollection ?? null);
+      if (nextCollection?.areaId) {
+        const area = (areaData.areas as { id: string; name: string }[]).find((a) => a.id === nextCollection.areaId);
         setAreaName(area?.name ?? "");
       }
     });
@@ -45,7 +45,7 @@ export default function PublishPage() {
         }
       })
       .finally(() => setLoading(false));
-  }, [id]);
+  }, [id, router]);
 
   async function copyLink(token: string) {
     await navigator.clipboard.writeText(`${window.location.origin}/share/${token}?preview=1`);
