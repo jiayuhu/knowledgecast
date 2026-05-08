@@ -7,7 +7,7 @@ const updateKnowledgeItemSchema = z.object({
   userId: z.string().min(1),
   title: z.string().nullable().optional(),
   content: z.string().min(1).optional(),
-  workspaceId: z.string().nullable().optional(),
+  collectionId: z.string().nullable().optional(),
 });
 
 const deleteSchema = z.object({
@@ -34,7 +34,7 @@ export async function PATCH(
   const payload = updateKnowledgeItemSchema.parse(await request.json());
 
   // 如果只有 userId（无其他字段），执行归档
-  if (payload.title === undefined && payload.content === undefined && payload.workspaceId === undefined) {
+  if (payload.title === undefined && payload.content === undefined && payload.collectionId === undefined) {
     const item = await archiveKnowledgeItem(id, payload.userId);
     return NextResponse.json({ item });
   }
@@ -43,7 +43,7 @@ export async function PATCH(
   const item = await updateKnowledgeItem(id, payload.userId, {
     title: payload.title,
     content: payload.content,
-    workspaceId: payload.workspaceId,
+    collectionId: payload.collectionId,
   });
 
   if (!item) {

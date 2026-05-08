@@ -1,0 +1,294 @@
+"use client";
+
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
+import { FrameworkPicker } from "@/components/collection/FrameworkPicker";
+import { SlidePreview } from "@/components/collection/SlidePreview";
+import { IterationPanel } from "@/components/collection/IterationPanel";
+import { VersionBar } from "@/components/collection/VersionBar";
+import { CoverageBanner } from "@/components/collection/CoverageBanner";
+
+type Collection = { id: string; name: string; areaId: string | null; userId: string; topic?: string | null };
+type Fragment = { id: string; sourceType: string; title: string | null; content: string; status: string };
+type Slide = { title: string; bullets: string[]; speakerNotes: string; estimatedMinutes: number };
+type TrainingResult = {
+  trainingPage: { id: string; title: string; framework: string | null; slidesJson: string | null; totalMinutes: number | null; version: number | null; status: string };
+  shareLink: { token: string; status: string; expiresAt: string } | null;
+};
+
+function ShareLinkCard({ token }: { token: string }) {
+  const [copied, setCopied] = useState(false);
+  const shareUrl = `${window.location.origin}/share/${token}?preview=1`;
+  return (
+    <div className="rounded-xl border border-dashed border-green-200 bg-green-50 p-4">
+      <p className="text-xs font-medium text-green-800 mb-2">分享链接已生成</p>
+      <div className="flex items-center gap-1">
+        <input readOnly value={shareUrl} className="flex-1 rounded-lg border border-green-200 bg-white px-2 py-1.5 text-xs text-gray-700 outline-none font-mono" />
+        <button onClick={async () => { await navigator.clipboard.writeText(shareUrl); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
+          className="shrink-0 rounded-lg bg-green-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-green-700">{copied ? "已复制 ✓" : "复制"}</button>
+      </div>
+    </div>
+  );
+}
+
+export default function StructurePage() {
+  const { id } = useParams<{ id: string }>();
+  const router = useRouter();
+  const [userId] = useState("demo-user");
+  const [collection, setCollection] = useState<Collection | null>(null);
+  const [areaName, setAreaName] = useState("");
+  const [collectionTopic, setCollectionTopic] = useState("");
+  const [fragments, setFragments] = useState<Fragment[]>([]);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [frameworkId, setFrameworkId] = useState<string | null>(null);
+  const [generating, setGenerating] = useState(false);
+  const [instruction, setInstruction] = useState("");
+  const [iterating, setIterating] = useState(false);
+  const [result, setResult] = useState<TrainingResult | null>(null);
+  const [message, setMessage] = useState("");
+  const [previewSlidesJson, setPreviewSlidesJson] = useState<string | null>(null);
+  const [hasManualEdits, setHasManualEdits] = useState(false);
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [frameworkSteps, setFrameworkSteps] = useState(0);
+
+  const loadCollection = useCallback(() => {
+    Promise.all([
+      fetch("/api/collections?userId=demo-user"),
+      fetch("/api/areas?userId=demo-user")
+    ]).then(async ([collectionRes, areaRes]) => {
+      const collectionData = await collectionRes.json();
+      const areaData = await areaRes.json();
+      const nextCollection = (collectionData.collections as Collection[]).find((item) => item.id === id) ?? null;
+      setCollection(nextCollection);
+      if (nextCollection) {
+        setCollectionTopic(nextCollection.topic ?? "");
+        localStorage.setItem("knowledgecast_collection_id", nextCollection.id);
+        if (nextCollection.areaId) {
+          const area = (areaData.areas as { id: string; name: string }[]).find((a) => a.id === nextCollection.areaId);
+          setAreaName(area?.name ?? "");
+        }
+      }
+    });
+  }, [id]);
+
+  useEffect(() => { loadCollection(); }, [loadCollection]);
+
+  useEffect(() => {
+    if (!collection) return;
+    const cached = localStorage.getItem(`kc_result_${collection.id}`);
+    if (cached) { try { setResult(JSON.parse(cached)); } catch { setResult(null); } }
+  }, [collection]);
+
+  useEffect(() => {
+    if (result && collection) localStorage.setItem(`kc_result_${collection.id}`, JSON.stringify(result));
+  }, [result, collection]);
+
+  useEffect(() => {
+    if (!collection) return;
+    fetch(`/api/knowledge-items?userId=demo-user&collectionId=${encodeURIComponent(collection.id)}&limit=50`)
+      .then((r) => r.json())
+      .then((data) => {
+        const items = (data.knowledgeItems ?? [] as Fragment[]).filter((f: Fragment) => f.status !== "archived");
+        setFragments(items);
+        if (items.length === 0) {
+          setMessage("当前工作集还没有素材，请先采集素材");
+          setTimeout(() => router.push(`/collections/${id}/capture`), 1500);
+        }
+      })
+      .catch(() => setMessage("加载素材失败"));
+  }, [collection, id, router]);
+
+  useEffect(() => {
+    if (!frameworkId) { setFrameworkSteps(0); return; }
+    fetch(`/api/frameworks?userId=demo-user`)
+      .then(r => r.json())
+      .then(data => {
+        const fws = (data.frameworks ?? []) as Array<{ id: string; structure: string[] }>;
+        const fw = fws.find(f => f.id === frameworkId);
+        setFrameworkSteps(fw?.structure.length ?? 0);
+      })
+      .catch(() => {});
+  }, [frameworkId]);
+
+  function toggleFragment(fid: string) { setSelectedIds((prev) => prev.includes(fid) ? prev.filter((i) => i !== fid) : [...prev, fid]); }
+
+  async function handleGenerate() {
+    if (!frameworkId || !collection) { setMessage("请先选择工作集和培训框架"); return; }
+    setGenerating(true); setMessage("");
+    try {
+      const res = await fetch("/api/training-pages/generate", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, knowledgeItemIds: selectedIds, frameworkId, topic: collectionTopic || undefined })
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error((body as { error?: string }).error ?? "生成失败");
+      }
+      setResult(await res.json() as TrainingResult);
+      setMessage("生成成功");
+    } catch (e) { setMessage(e instanceof Error ? e.message : "生成失败"); }
+    finally { setGenerating(false); }
+  }
+
+  async function handleIterate() {
+    if (!instruction.trim() || !result || !frameworkId) return;
+    setIterating(true); setMessage("");
+    try {
+      const res = await fetch(`/api/training-pages/${result.trainingPage.id}/iterate`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, knowledgeItemIds: selectedIds, frameworkId, instruction: instruction.trim() })
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error((body as { error?: string }).error ?? "调整失败");
+      }
+      setResult(await res.json() as TrainingResult);
+      setInstruction(""); setMessage("调整完成");
+    } catch (e) { setMessage(e instanceof Error ? e.message : "调整失败"); }
+    finally { setIterating(false); }
+  }
+
+  async function handleRestore(restoreSlidesJson: string, targetVersion: number) {
+    if (!result) return;
+    try {
+      const parsed = JSON.parse(restoreSlidesJson);
+      const res = await fetch(`/api/training-pages/${result.trainingPage.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId,
+          slidesJson: restoreSlidesJson,
+          title: parsed.title,
+          totalMinutes: parsed.totalMinutes,
+          version: (result.trainingPage.version ?? 1) + 1,
+          restoreInstruction: `恢复到 v${targetVersion}`,
+          preRestoreVersion: result.trainingPage.version ?? 1,
+          preRestoreSlidesJson: result.trainingPage.slidesJson
+        })
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error((body as { error?: string }).error ?? "恢复失败");
+      }
+      const updated = await res.json() as TrainingResult;
+      setResult(updated);
+      setPreviewSlidesJson(null);
+      setHasManualEdits(false);
+      setMessage("已恢复");
+    } catch (e) {
+      setMessage(e instanceof Error ? e.message : "恢复失败");
+    } finally {
+    }
+  }
+
+  function handleSlidesChange(updatedSlides: Slide[]) {
+    if (!result) return;
+    setHasManualEdits(true);
+
+    const slidesJson = result.trainingPage.slidesJson;
+    if (!slidesJson) return;
+    const parsed = JSON.parse(slidesJson);
+    const updated = { ...parsed, slides: updatedSlides };
+    const newSlidesJson = JSON.stringify(updated);
+
+    // Update local state immediately
+    setResult({
+      ...result,
+      trainingPage: { ...result.trainingPage, slidesJson: newSlidesJson }
+    });
+
+    // Debounce save to server
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/training-pages/${result.trainingPage.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId, slidesJson: newSlidesJson })
+        });
+        if (!res.ok) {
+          console.error("Failed to save edits:", await res.text());
+        }
+      } catch (err) {
+        console.error("Failed to save edits:", err);
+      }
+    }, 500);
+  }
+
+  const slidesJson = previewSlidesJson ?? result?.trainingPage.slidesJson;
+  const slides: Slide[] = slidesJson ? JSON.parse(slidesJson).slides : [];
+
+  useEffect(() => {
+    return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
+  }, []);
+
+  return (
+    <main className="px-8 py-8">
+      <h1 className="text-2xl font-bold tracking-tight text-gray-900 mb-2">整理内容</h1>
+      <p className="text-sm text-gray-500 mb-6">选择培训框架，选中素材，AI 将其组织成结构化幻灯片</p>
+      {collection ? (
+        <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
+          <aside className="space-y-6">
+            <FrameworkPicker userId={userId} selectedId={frameworkId} onSelect={setFrameworkId} />
+            <div className="rounded-xl border border-gray-200 bg-white p-6">
+              <div className="flex items-center justify-between">
+                <h2 className="text-sm font-medium uppercase tracking-wide text-gray-500">选择素材</h2>
+                <span className="text-xs text-gray-400">{selectedIds.length}/{fragments.length}</span>
+              </div>
+              <div className="mt-4 max-h-64 space-y-1 overflow-y-auto">
+                {fragments.length === 0 ? (
+                  <div className="text-center py-6">
+                    <p className="text-xs text-gray-400 mb-2">当前工作集还没有素材</p>
+                    <Link href={`/collections/${id}/capture`} className="text-xs text-blue-600 hover:text-blue-700 font-medium">
+                      去采集页添加 →
+                    </Link>
+                  </div>
+                ) : fragments.map((f) => (
+                  <button key={f.id} onClick={() => toggleFragment(f.id)}
+                    className={`flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-xs transition ${selectedIds.includes(f.id) ? "bg-blue-50 text-blue-700" : "text-gray-600 hover:bg-gray-50"}`}>
+                    <input type="checkbox" checked={selectedIds.includes(f.id)} onChange={() => {}} className="h-3.5 w-3.5 rounded border-gray-300" />
+                    <span className="flex-1 truncate">{f.title ?? f.content.slice(0, 40)}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+            <CoverageBanner slides={[]} frameworkSteps={frameworkSteps} materialCount={fragments.length} />
+            <button onClick={handleGenerate} disabled={generating || !frameworkId} className="w-full rounded-lg bg-blue-600 px-4 py-3 text-sm font-medium text-white transition hover:bg-blue-700 disabled:opacity-50">
+              {generating ? "AI 生成中..." : "生成培训幻灯片"}
+            </button>
+            {message && (
+              <p className={`rounded-lg px-3 py-2 text-xs font-medium ${
+                message.includes("成功") || message.includes("完成")
+                  ? "bg-green-50 text-green-700"
+                  : message.includes("失败")
+                    ? "bg-red-50 text-red-700"
+                    : "bg-gray-100 text-gray-600"
+              }`}>{message}</p>
+            )}
+            {result && (
+              <VersionBar
+                currentVersion={result.trainingPage.version ?? 1}
+                trainingPageId={result.trainingPage.id}
+                currentSlidesJson={result.trainingPage.slidesJson}
+                onVersionSelect={(json, _version) => setPreviewSlidesJson(json)}
+                onRestore={handleRestore}
+                hasManualEdits={hasManualEdits}
+              />
+            )}
+            {result?.shareLink && <ShareLinkCard token={result.shareLink.token} />}
+            {result && <IterationPanel instruction={instruction} onInstructionChange={setInstruction} onSubmit={handleIterate} loading={iterating} />}
+          </aside>
+          <section>
+            {slides.length > 0 && (
+              <CoverageBanner slides={slides} frameworkSteps={frameworkSteps} materialCount={fragments.length} />
+            )}
+            <SlidePreview slides={slides} title={result?.trainingPage.title ?? ""} totalMinutes={result?.trainingPage.totalMinutes ?? 0}
+              shareUrl={result?.shareLink ? `/share/${result.shareLink.token}` : ""} editingEnabled={true}
+              onSlidesChange={handleSlidesChange} />
+          </section>
+        </div>
+      ) : <div className="rounded-xl border border-dashed border-gray-300 bg-white p-12 text-center"><p className="text-sm text-gray-400">加载中...</p></div>}
+    </main>
+  );
+}

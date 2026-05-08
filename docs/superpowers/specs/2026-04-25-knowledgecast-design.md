@@ -162,7 +162,7 @@ KnowledgeCast 不是泛知识管理工具，也不是大而全内容平台。它
 - 分割线下方「未归类素材」入口，选中时蓝色高亮
 - 未归类素材入口在选中时，工作集选中状态自动取消
 
-工作集 Dashboard（`/workspace/[id]`）：
+工作集 Dashboard（`/collections/[id]`）：
 - 显示工作区名称 + 工作集名称
 - 三卡片入口：采集、整理、发布
 - 素材数 / 培训页数统计
@@ -171,7 +171,7 @@ KnowledgeCast 不是泛知识管理工具，也不是大而全内容平台。它
 
 ### 6.1 采集层（Capture）
 
-路由：`/workspace/[id]/capture`
+路由：`/collections/[id]/capture`
 
 - 万用大输入框，自动识别内容类型（文本/URL/Markdown）
 - 捕获后 AI 自动生成碎片标题（10 字以内）
@@ -185,7 +185,7 @@ KnowledgeCast 不是泛知识管理工具，也不是大而全内容平台。它
 
 ### 6.2 整理层（Structure）
 
-路由：`/workspace/[id]/structure`
+路由：`/collections/[id]/structure`
 
 - 框架选择器：内置 5 套 + 用户自定义模板
 - 自定义模板：名称、步骤（顿号分隔）、适用场景，可编辑/删除
@@ -200,7 +200,7 @@ KnowledgeCast 不是泛知识管理工具，也不是大而全内容平台。它
 
 ### 6.3 输出层（Share）
 
-路由：`/workspace/[id]/publish`（讲师视角）+ `/share/[token]`（学员视角）
+路由：`/collections/[id]/publish`（讲师视角）+ `/share/[token]`（学员视角）
 
 - 幻灯片式展示，带页码导航
 - 顶部：标题、框架名称、总时长预估
@@ -276,7 +276,7 @@ KnowledgeCast 不是泛知识管理工具，也不是大而全内容平台。它
 ### 9.1 核心实体
 
 - `Area`：工作区（名称、排序序号），顶层容器，按业务方向划分
-- `Workspace`：工作集（名称、培训主题 topic、排序序号、所属 area_id），素材和培训页的归属容器
+- `Collection`：工作集（名称、培训主题 topic、排序序号、所属 area_id），素材和培训页的归属容器
 - `KnowledgeItem`：单条碎片输入（文本/URL/Markdown），归属于一个工作集
 - `TrainingPage`：生成的培训页面，包含框架 ID、幻灯片 JSON、时长、版本号
 - `Slide`：单张幻灯片（标题、要点数组、讲者备注、预估时长），序列化在 slides_json 中
@@ -316,9 +316,9 @@ type TrainingContent = {
 
 ### 9.4 未归类素材
 
-删除工作集时，关联素材的 `workspaceId` 被置空而非删除。这些脱离工作集的素材进入「未归类素材」视图。
+删除工作集时，关联素材的 `collectionId` 被置空而非删除。这些脱离工作集的素材进入「未归类素材」视图。
 
-- 路由：`/workspace/orphaned`
+- 路由：`/unassigned`
 - 侧边栏底部独立入口，带分割线和仓库图标
 - 列表展示所有脱离工作集的素材（源类型、标题、日期）
 - 支持通过下拉选择器将素材转移到任意工作集
@@ -329,7 +329,7 @@ type TrainingContent = {
 - 两步确认流程：点击删除 → 展开确认面板 → 输入工作集名称精确匹配 → 确认
 - 红色警告区列出影响范围和不可撤销提示
 - 明确告知素材「不会被删除，保留在系统中」
-- 服务端显式将关联素材 `workspaceId` 置空
+- 服务端显式将关联素材 `collectionId` 置空
 
 ## 10. 系统架构
 

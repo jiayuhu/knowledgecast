@@ -56,6 +56,7 @@ KnowledgeCast is a small SaaS for turning fragmented knowledge into structured c
 - Prefer simple, shippable implementations over broad platform work
 - Do not add extra product surfaces without approval
 - Use snake_case for database tables and columns; keep TypeScript identifiers in camelCase/PascalCase
+- “工作区”对应 area；“工作集”对应 collection。数据库、API、URL 和 TypeScript 业务命名统一使用 collection，不再使用 workspace 表示工作集
 - Preserve existing user changes; do not revert unrelated work
 - Use non-destructive git commands only
 

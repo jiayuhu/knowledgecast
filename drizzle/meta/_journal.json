@@ -57,6 +57,13 @@
       "when": 1777912946990,
       "tag": "0007_common_colleen_wing",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1777920000000,
+      "tag": "0008_collections_migration",
+      "breakpoints": true
     }
   ]
 }

@@ -22,7 +22,7 @@ src/
 ├── app/
 │   ├── layout.tsx                    # 根布局
 │   ├── page.tsx                      # 首页（跳转到工作集）
-│   ├── workspace/[id]/               # 工作集路由
+│   ├── collections/[id]/             # 工作集路由
 │   │   ├── page.tsx                  # Dashboard（卡片入口 + 培训页列表）
 │   │   ├── capture/page.tsx          # 采集素材
 │   │   ├── structure/page.tsx        # AI 整理生成
@@ -30,12 +30,12 @@ src/
 │   │   └── settings/page.tsx         # 工作集设置
 │   ├── share/[token]/page.tsx        # 学员视角
 │   └── api/                          # API 路由（参见 docs/api.md）
-├── components/workspace/             # UI 组件（侧边栏、采集、框架选择等）
+├── components/collection/            # UI 组件（侧边栏、采集、框架选择等）
 ├── server/                           # 服务层
 │   ├── ai/                           # AI Provider（DeepSeek / OpenAI）
 │   ├── db/                           # 数据库（Drizzle ORM + Migration）
 │   ├── area/repository.ts            # 工作区 CRUD
-│   ├── workspace/repository.ts       # 工作集 CRUD
+│   ├── collection/repository.ts      # 工作集 CRUD
 │   ├── knowledge/                     # 素材 CRUD + 图片引用追踪 + 清理
 │   ├── ingest/                       # 素材采集管线
 │   │   ├── normalize.ts              # 规范化 + 嵌入 URL 提取
