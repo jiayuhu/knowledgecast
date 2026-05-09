@@ -13,7 +13,7 @@ export async function GET(request: Request) {
 
   let areas = await listAreas(userId);
   if (areas.length === 0) {
-    const defaultArea = await createArea(userId, "默认");
+    const defaultArea = await createArea(userId, "默认工作区");
     areas = [defaultArea];
   }
 

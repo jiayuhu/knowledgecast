@@ -67,7 +67,7 @@ export async function deleteArea(id: string) {
 export async function ensureDefaultArea(userId: string) {
   const existing = await listAreas(userId);
   if (existing.length === 0) {
-    return createArea(userId, "默认");
+    return createArea(userId, "默认工作区");
   }
   return existing[0];
 }
